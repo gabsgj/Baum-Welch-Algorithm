@@ -1,0 +1,10 @@
+// Learned Weather HMM
+digraph HMM {
+	bgcolor="#FAFAFA" fontname=Helvetica fontsize=18 label="Learned Weather HMM" labelloc=t pad=0.5 rankdir=LR
+	0 [label=Rainy fillcolor="#2E86AB" fixedsize=true fontcolor=white fontname="Helvetica Bold" fontsize=14 height=1.0 shape=circle style=filled width=1.0]
+	1 [label=Sunny fillcolor="#A23B72" fixedsize=true fontcolor=white fontname="Helvetica Bold" fontsize=14 height=1.0 shape=circle style=filled width=1.0]
+	0 -> 0 [label=0.492 color="#2E86AB" fontcolor="#2E86AB" fontname=Helvetica fontsize=10 penwidth=2.47]
+	0 -> 1 [label=0.508 color="#333333" fontcolor="#333333" fontname=Helvetica fontsize=10 penwidth=2.53]
+	1 -> 0 [label=0.874 color="#333333" fontcolor="#333333" fontname=Helvetica fontsize=10 penwidth=4.0]
+	1 -> 1 [label=0.126 color="#A23B72" fontcolor="#A23B72" fontname=Helvetica fontsize=10 penwidth=1.0]
+}
