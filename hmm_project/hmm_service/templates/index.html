@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HMM — Live Baum–Welch Training Dashboard</title>
+    <title>HMM Training Dashboard Redesign v1</title>
     <meta name="description"
         content="Real-time Hidden Markov Model training dashboard using the Baum-Welch Expectation-Maximization algorithm">
 
@@ -28,10 +28,10 @@
                     colors: {
                         sapphire: {
                             50: '#eff4ff', 100: '#dbe6fe', 200: '#bfd3fe',
-                            300: '#93b4fd', 400: '#6090fa', 500: '#2563eb',
-                            600: '#1d4ed8', 700: '#1e40af', 800: '#1e3a8a', 900: '#1a2f6b',
+                            300: '#93b4fd', 400: '#6090fa', 500: '#1d4ed8', // Darker primary
+                            600: '#1e40af', 700: '#1e3a8a', 800: '#1e3a8a', 900: '#1a2f6b',
                         },
-                        academic: { bg: '#FAF9F6', card: '#FFFFFF', border: '#E2E0DC', muted: '#94918B' }
+                        academic: { bg: '#F3F4F6', card: '#FFFFFF', border: '#E5E7EB', muted: '#6B7280' } // Lighter bg
                     }
                 }
             }
@@ -167,114 +167,46 @@
     </style>
 </head>
 
-<body class="min-h-screen antialiased text-slate-800">
+<body class="min-h-screen antialiased text-slate-800 bg-academic-bg">
 
-    <!-- ══════════════ 1. HEADER ══════════════ -->
-    <header class="border-b border-academic-border bg-white/60 backdrop-blur-sm sticky top-0 z-40">
-        <div class="max-w-7xl mx-auto px-6 py-5 flex items-center justify-between">
-            <div>
-                <h1 class="text-xl font-semibold text-slate-900 tracking-tight">
-                    Hidden Markov Model &mdash; Live Baum&ndash;Welch Training
-                </h1>
-                <p class="text-sm text-academic-muted mt-0.5">
-                    Expectation&ndash;Maximization Optimization Dashboard
-                </p>
-            </div>
-            <div id="status-badge"
-                class="flex items-center gap-2 px-3 py-1.5 rounded-full border border-academic-border text-xs font-medium text-academic-muted bg-academic-bg">
-                <span class="w-2 h-2 rounded-full bg-slate-400"></span>
-                <span id="status-text">Idle</span>
-            </div>
-        </div>
+    <!-- ══════════════ 1. HEADER (Simplified) ══════════════ -->
+    <header class="py-6 text-center">
+        <!-- Status Badge Hidden/Moved -->
+        <div id="status-badge" class="hidden"> <span id="status-text"></span> </div>
     </header>
 
-    <main class="max-w-7xl mx-auto px-6 py-8 space-y-10">
+    <main class="max-w-7xl mx-auto px-6 pb-20 space-y-8">
 
-        <!-- ══════════════ 2. CONFIGURATION ══════════════ -->
+        <!-- ══════════════ 2. CONFIGURATION CARD ══════════════ -->
         <section>
-            <p class="section-title mb-3">Configuration</p>
-            <div class="card p-6">
-                <form id="train-form" class="space-y-5">
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+            <div class="card p-8 bg-white shadow-sm rounded-lg border border-slate-200">
+                <h2 class="text-xl font-bold text-slate-900 mb-6 text-center">HMM Training Dashboard Redesign v1</h2>
+                
+                <form id="train-form" class="space-y-6">
+                    <!-- Top Row: Controls -->
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                         <div>
-                            <label for="n-states" class="block text-sm font-medium text-slate-700 mb-1.5">Hidden States
-                                (N)</label>
+                            <label for="n-states" class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Hidden States (N)</label>
                             <input id="n-states" type="number" min="2" max="10" value="2"
-                                class="w-full px-3 py-2 border border-academic-border rounded-md text-sm font-mono-num focus:outline-none focus:ring-2 focus:ring-sapphire-300 focus:border-sapphire-400 bg-white">
+                                class="w-full px-4 py-2 border border-slate-300 rounded text-base font-mono focus:outline-none focus:ring-2 focus:ring-sapphire-500 focus:border-sapphire-500 transition shadow-sm">
                         </div>
                         <div>
-                            <label for="max-iter" class="block text-sm font-medium text-slate-700 mb-1.5">Max
-                                Iterations</label>
+                            <label for="max-iter" class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Max Iterations</label>
                             <input id="max-iter" type="number" min="1" max="2000" value="100"
-                                class="w-full px-3 py-2 border border-academic-border rounded-md text-sm font-mono-num focus:outline-none focus:ring-2 focus:ring-sapphire-300 focus:border-sapphire-400 bg-white">
+                                class="w-full px-4 py-2 border border-slate-300 rounded text-base font-mono focus:outline-none focus:ring-2 focus:ring-sapphire-500 focus:border-sapphire-500 transition shadow-sm">
                         </div>
                         <div>
-                            <label for="tolerance"
-                                class="block text-sm font-medium text-slate-700 mb-1.5">Tolerance</label>
+                            <label for="tolerance" class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Tolerance</label>
                             <input id="tolerance" type="text" value="1e-6"
-                                class="w-full px-3 py-2 border border-academic-border rounded-md text-sm font-mono-num focus:outline-none focus:ring-2 focus:ring-sapphire-300 focus:border-sapphire-400 bg-white">
+                                class="w-full px-4 py-2 border border-slate-300 rounded text-base font-mono focus:outline-none focus:ring-2 focus:ring-sapphire-500 focus:border-sapphire-500 transition shadow-sm">
                         </div>
                     </div>
+
+                    <!-- Train Button -->
                     <div>
-                        <label for="observations" class="block text-sm font-medium text-slate-700 mb-1.5">Observation
-                            Sequence (comma-separated integers, 0-based)</label>
-                        <textarea id="observations" rows="3"
-                            class="w-full px-3 py-2 border border-academic-border rounded-md text-sm font-mono-num leading-relaxed focus:outline-none focus:ring-2 focus:ring-sapphire-300 focus:border-sapphire-400 bg-white resize-y"
-                            placeholder="e.g. 0, 1, 2, 0, 0, 1, 2, 1, 0, 2">0, 1, 2, 0, 0, 1, 2, 1, 0, 2, 2, 0, 1, 0, 1, 2, 2, 0, 1, 1, 0, 2, 0, 1, 2, 0, 0, 1, 2, 1, 0, 2, 2, 0, 1, 0, 1, 2, 2, 0, 1, 1, 0, 2, 0, 1, 2, 0, 0, 1</textarea>
-                    </div>
-                    <div class="flex items-center gap-3 pt-1">
-                        <button type="button" id="preset-weather"
-                            class="text-xs px-3 py-1.5 rounded border border-academic-border text-slate-600 hover:bg-slate-50 transition">Load
-                            Weather Preset</button>
-                        <button type="button" id="preset-dna"
-                            class="text-xs px-3 py-1.5 rounded border border-academic-border text-slate-600 hover:bg-slate-50 transition">Load
-                            DNA Preset</button>
-                    </div>
-
-                    <!-- Advanced Settings -->
-                    <div class="pt-3 pb-1 border-gray-100">
-                        <details class="group">
-                            <summary
-                                class="flex items-center gap-2 cursor-pointer list-none text-xs font-semibold text-slate-500 hover:text-slate-700 transition select-none">
-                                <svg class="w-3 h-3 transition group-open:rotate-90 text-slate-400" fill="none"
-                                    viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                    <path d="M9 5l7 7-7 7"></path>
-                                </svg>
-                                <span>Advanced Initialization</span>
-                            </summary>
-                            <div
-                                class="mt-2 space-y-3 p-3 bg-slate-50 rounded border border-slate-100 text-xs text-academic-muted">
-                                <div>
-                                    <label class="block font-medium mb-1 text-slate-700">Transition Matrix A
-                                        (JSON)</label>
-                                    <textarea id="init-a" rows="3"
-                                        class="w-full font-mono border-gray-300 rounded focus:ring-sapphire-500 focus:border-sapphire-500 text-xs"
-                                        placeholder="[[0.7, 0.3], [0.4, 0.6]]" spellcheck="false"></textarea>
-                                </div>
-                                <div>
-                                    <label class="block font-medium mb-1 text-slate-700">Emission Matrix B
-                                        (JSON)</label>
-                                    <textarea id="init-b" rows="3"
-                                        class="w-full font-mono border-gray-300 rounded focus:ring-sapphire-500 focus:border-sapphire-500 text-xs"
-                                        placeholder="[[0.9, 0.1], [0.2, 0.8]]" spellcheck="false"></textarea>
-                                </div>
-                                <div>
-                                    <label class="block font-medium mb-1 text-slate-700">Initial Probabilities &pi;
-                                        (JSON)</label>
-                                    <input type="text" id="init-pi"
-                                        class="w-full font-mono border-gray-300 rounded focus:ring-sapphire-500 focus:border-sapphire-500 text-xs h-8"
-                                        placeholder="[0.6, 0.4]" spellcheck="false">
-                                </div>
-                                <p class="text-amber-600 italic text-[10px]">* Leave empty for random initialization.
-                                    Metrics validation is performed on server.</p>
-                            </div>
-                        </details>
-                    </div>
-
-                    <div class="pt-2">
                         <button type="submit" id="train-btn"
-                            class="inline-flex items-center px-5 py-2.5 bg-sapphire-500 text-white text-sm font-medium rounded-md hover:bg-sapphire-600 focus:outline-none focus:ring-2 focus:ring-sapphire-300 disabled:opacity-50 disabled:cursor-not-allowed transition">
-                            <svg id="train-spinner" class="hidden animate-spin -ml-1 mr-2 h-4 w-4 text-white"
+                            class="w-full flex items-center justify-center py-3 px-6 bg-sapphire-700 text-white font-semibold rounded hover:bg-sapphire-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-sapphire-500 transition shadow-md">
+                            <svg id="train-spinner" class="hidden animate-spin -ml-1 mr-2 h-5 w-5 text-white"
                                 xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                                 <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor"
                                     stroke-width="4"></circle>
@@ -284,201 +216,185 @@
                             <span id="train-btn-text">Train Model</span>
                         </button>
                     </div>
+
+                    <!-- Collapsible Data & Advanced (Preserved Functionality) -->
+                    <div class="border-t border-slate-100 pt-4 mt-2">
+                        <details class="group">
+                            <summary class="flex items-center justify-center gap-2 cursor-pointer text-xs font-medium text-slate-400 hover:text-slate-600 transition select-none">
+                                <span>Observation Data &amp; Advanced Init</span>
+                                <svg class="w-3 h-3 transition group-open:rotate-180" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                            </summary>
+                            <div class="mt-4 space-y-4 p-4 bg-slate-50 rounded border border-slate-100 text-sm">
+                                <div>
+                                    <label class="block font-medium mb-1 text-slate-700 text-xs">Observation Sequence</label>
+                                    <textarea id="observations" rows="2" class="w-full text-xs font-mono border-gray-300 rounded focus:ring-sapphire-500 focus:border-sapphire-500">0, 1, 2, 0, 0, 1, 2, 1, 0, 2, 2, 0, 1, 0, 1, 2, 2, 0, 1, 1, 0, 2, 0, 1, 2, 0, 0, 1, 2, 1, 0, 2, 2, 0, 1, 0, 1, 2, 2, 0, 1, 1, 0, 2, 0, 1, 2, 0, 0, 1</textarea>
+                                </div>
+                                <div class="flex gap-2">
+                                    <button type="button" id="preset-weather" class="px-3 py-1 bg-white border border-slate-200 rounded hover:bg-slate-50 text-xs">Weather Preset</button>
+                                    <button type="button" id="preset-dna" class="px-3 py-1 bg-white border border-slate-200 rounded hover:bg-slate-50 text-xs">DNA Preset</button>
+                                </div>
+                                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 border-t border-slate-200 pt-4">
+                                     <div><label class="block text-xs font-semibold mb-1">Init A</label><textarea id="init-a" rows="2" class="w-full text-xs font-mono border-gray-300 rounded"></textarea></div>
+                                     <div><label class="block text-xs font-semibold mb-1">Init B</label><textarea id="init-b" rows="2" class="w-full text-xs font-mono border-gray-300 rounded"></textarea></div>
+                                     <div><label class="block text-xs font-semibold mb-1">Init Pi</label><input type="text" id="init-pi" class="w-full text-xs font-mono border-gray-300 rounded"></div>
+                                </div>
+                            </div>
+                        </details>
+                    </div>
                 </form>
             </div>
         </section>
 
-        <!-- ══════════════ 3. LIVE METRICS ══════════════ -->
+        <!-- ══════════════ 3. LIVE METRICS (Redesigned) ══════════════ -->
         <section id="results-section" class="hidden">
-            <p class="section-title mb-3">Live Metrics</p>
-            <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div class="card p-4">
-                    <p class="text-xs text-academic-muted font-medium mb-1">Iteration</p>
-                    <p id="metric-iter" class="text-2xl font-mono-num font-semibold text-slate-800">&mdash;</p>
-                </div>
-                <div class="card p-4">
-                    <p class="text-xs text-academic-muted font-medium mb-1">Log-Likelihood</p>
-                    <p id="metric-ll" class="text-2xl font-mono-num font-semibold text-slate-800">&mdash;</p>
-                </div>
-                <div class="card p-4">
-                    <p class="text-xs text-academic-muted font-medium mb-1">&Delta; (Change)</p>
-                    <p id="metric-delta" class="text-2xl font-mono-num font-semibold text-slate-800">&mdash;</p>
-                </div>
-                <div class="card p-4">
-                    <p class="text-xs text-academic-muted font-medium mb-1">Status</p>
-                    <p id="metric-status" class="text-2xl font-semibold text-slate-800">&mdash;</p>
+            <div class="card bg-white border border-slate-200 shadow-sm rounded-lg overflow-hidden">
+                <div class="grid grid-cols-1 md:grid-cols-3 divide-y md:divide-y-0 md:divide-x divide-slate-100">
+                    <!-- Iteration -->
+                    <div class="p-6 text-center">
+                        <p class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">Iteration</p>
+                        <p id="metric-iter" class="text-5xl font-mono font-bold text-slate-800 leading-none">&mdash;</p>
+                    </div>
+                    <!-- Log Likelihood -->
+                    <div class="p-6 text-center">
+                        <p class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">Log-Likelihood</p>
+                        <div class="flex flex-col items-center justify-center h-full">
+                             <p id="metric-ll" class="text-4xl font-mono font-bold text-slate-800 leading-none mb-1">&mdash;</p>
+                             <p id="metric-delta" class="text-xs font-mono text-slate-400 hidden">&mdash;</p>
+                        </div>
+                    </div>
+                    <!-- Status -->
+                    <div class="p-6 text-center flex flex-col items-center justify-center">
+                        <p class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">Status</p>
+                        <div class="flex items-center gap-2">
+                             <span id="metric-status" class="text-3xl font-bold text-emerald-500">Ready</span>
+                             <!-- <div class="bg-emerald-100 text-emerald-700 rounded-full p-1"><svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path></svg></div> -->
+                        </div>
+                    </div>
                 </div>
             </div>
         </section>
 
-        <!-- ══════════════ 4. LOG-LIKELIHOOD CHART ══════════════ -->
-        <section id="ll-section" class="hidden">
-            <p class="section-title mb-3">Log-Likelihood Convergence &mdash; log P(O|&lambda;)</p>
-            <div class="card p-5">
-                <div id="ll-chart" style="width:100%; height:320px;"></div>
-            </div>
-        </section>
+        <!-- ══════════════ CHART GRID ══════════════ -->
+        <!-- Row 1: Convergence & Prob (Side by Side) -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <section id="ll-section" class="hidden">
+                <p class="text-sm font-semibold text-slate-800 mb-3 ml-1">Log-Likelihood Convergence</p>
+                <div class="card p-4 bg-white border border-slate-200 shadow-sm rounded-lg h-full">
+                    <div id="ll-chart" style="width:100%; height:280px;"></div>
+                </div>
+            </section>
+            <section id="prob-section" class="hidden">
+                <p class="text-sm font-semibold text-slate-800 mb-3 ml-1">Observation Probability (P(O|A))</p>
+                <div class="card p-4 bg-white border border-slate-200 shadow-sm rounded-lg h-full">
+                    <div id="prob-chart" style="width:100%; height:280px;"></div>
+                </div>
+            </section>
+        </div>
 
-        <!-- ══════════════ 4b. P(O|lambda) CHART ══════════════ -->
-        <section id="prob-section" class="hidden">
-            <p class="section-title mb-3">Observation Probability &mdash; P(O|&lambda;)</p>
-            <div class="card p-5">
-                <div id="prob-chart" style="width:100%; height:320px;"></div>
-            </div>
-        </section>
-
-        <!-- ══════════════ 4c. ERROR CHART (1 - P(O|lambda)) ══════════════ -->
-        <section id="error-section" class="hidden">
-            <p class="section-title mb-3">Optimization Loss (-LogLikelihood)</p>
-            <div class="card p-5">
-                <div id="error-chart" style="width:100%; height:320px;"></div>
-            </div>
-        </section>
-
-        <!-- ══════════════ 5. STATE DIAGRAM ══════════════ -->
+        <!-- Row 2: Diagram (Full Width) -->
         <section id="diagram-section" class="hidden">
-            <p class="section-title mb-3">HMM State Transition Diagram</p>
-            <div class="card p-6">
-                <!-- Diagram Canvas -->
-                <div id="state-diagram-container" class="hmm-canvas" style="height:720px;"></div>
-
-                <!-- Replay Controls -->
-                <div class="hmm-controls mt-4">
-                    <button id="hmm-first" class="hmm-ctrl-btn" title="First" disabled>⏮</button>
-                    <button id="hmm-back" class="hmm-ctrl-btn" title="Step Back" disabled>⏪</button>
-                    <button id="hmm-play" class="hmm-ctrl-btn" title="Play / Pause" disabled>▶</button>
-                    <button id="hmm-fwd" class="hmm-ctrl-btn" title="Step Forward" disabled>⏩</button>
-                    <button id="hmm-last" class="hmm-ctrl-btn" title="Last" disabled>⏭</button>
-                    <select id="hmm-speed" class="hmm-speed-select" title="Playback Speed">
-                        <option value="0.25">0.25×</option>
-                        <option value="0.5">0.5×</option>
-                        <option value="1" selected>1×</option>
-                        <option value="2">2×</option>
-                        <option value="5">5×</option>
-                    </select>
-                    <input id="hmm-timeline" class="hmm-timeline" type="range" min="0" max="0" value="0"
-                        title="Iteration Timeline">
-                    <span id="hmm-iter-label" class="hmm-iter-label">No data</span>
-                    <button id="hmm-particles" class="hmm-ctrl-btn active" title="Toggle Particles">✦</button>
+            <p class="text-sm font-semibold text-slate-800 mb-3 ml-1">State Transition Diagram</p>
+            <div class="card p-6 bg-white border border-slate-200 shadow-sm rounded-lg">
+                <div id="state-diagram-container" class="hmm-canvas w-full flex justify-center items-center" style="min-height: 350px;"></div>
+                
+                <div class="hmm-controls mt-6 pt-4 border-t border-slate-100 flex justify-center items-center gap-2">
+                       <button id="hmm-first" class="p-2 hover:bg-slate-100 rounded text-slate-500">⏮</button>
+                       <button id="hmm-back" class="p-2 hover:bg-slate-100 rounded text-slate-500">⏪</button>
+                       <button id="hmm-play" class="p-2 hover:bg-slate-100 rounded text-sapphire-600 font-bold text-lg">▶</button>
+                       <button id="hmm-fwd" class="p-2 hover:bg-slate-100 rounded text-slate-500">⏩</button>
+                       <button id="hmm-last" class="p-2 hover:bg-slate-100 rounded text-slate-500">⏭</button>
+                       <div class="w-px h-6 bg-slate-200 mx-2"></div>
+                       <select id="hmm-speed" class="text-xs border-none bg-slate-50 rounded px-2 py-1"><option value="1">1×</option><option value="2">2×</option></select>
+                       <span id="hmm-iter-label" class="text-xs font-mono text-slate-500 min-w-[60px] text-center">Iter 0</span>
+                       <input id="hmm-timeline" type="range" class="w-32 accent-sapphire-500">
+                       <button id="hmm-particles" class="text-xs p-1 ml-2 text-sapphire-500">✦</button>
                 </div>
-
-                <!-- Inspector Panel -->
-                <div id="hmm-inspector" class="hmm-inspector mt-4"></div>
+                <!-- Hidden Inspector Hook -->
+                <div id="hmm-inspector" class="hidden"></div>
             </div>
         </section>
 
-        <!-- ══════════════ 6-7. HEATMAPS ══════════════ -->
-        <section id="heatmaps-section" class="hidden">
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <div>
-                    <p class="section-title mb-3">Transition Matrix A</p>
-                    <div class="card p-5">
-                        <div id="heatmap-A" class="flex justify-center"></div>
+        <!-- Row 3: Matrices (A, B, Pi) -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+             <!-- Wrap A and B in the heatmaps-section ID but display as contents to use the parent grid -->
+             <section id="heatmaps-section" class="hidden contents">
+                 <div>
+                    <p class="text-sm font-semibold text-slate-800 mb-3 ml-1">Transition Matrix A</p>
+                    <div class="card p-4 bg-white border border-slate-200 shadow-sm rounded-lg flex justify-center items-start min-h-[250px]">
+                        <div id="heatmap-A"></div>
+                    </div>
+                 </div>
+                 <div>
+                    <p class="text-sm font-semibold text-slate-800 mb-3 ml-1">Emission Matrix B</p>
+                    <div class="card p-4 bg-white border border-slate-200 shadow-sm rounded-lg flex justify-center items-start min-h-[250px]">
+                        <div id="heatmap-B"></div>
+                    </div>
+                 </div>
+             </section>
+             
+             <section id="pi-section" class="hidden">
+                 <p class="text-sm font-semibold text-slate-800 mb-3 ml-1">Initial Distribution &pi;</p>
+                 <div class="card p-4 bg-white border border-slate-200 shadow-sm rounded-lg min-h-[250px] flex flex-col justify-center">
+                    <div id="pi-bars" class="space-y-4 w-full"></div>
+                 </div>
+             </section>
+        </div>
+
+        <!-- Row 4: Evolution & Log -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <section id="evolution-section" class="hidden">
+                <p class="text-sm font-semibold text-slate-800 mb-3 ml-1">Parameter Evolution</p>
+                <div class="card p-4 bg-white border border-slate-200 shadow-sm rounded-lg h-[350px]">
+                     <div id="evolution-chart" style="width:100%; height:100%;"></div>
+                </div>
+            </section>
+            
+            <section id="iterlog-section" class="hidden">
+                <p class="text-sm font-semibold text-slate-800 mb-3 ml-1">Iteration Log</p>
+                <div class="card bg-white border border-slate-200 shadow-sm rounded-lg h-[350px] flex flex-col">
+                    <div class="overflow-auto flex-1 p-0">
+                        <table class="iter-table w-full text-left" id="iter-table">
+                            <thead><tr id="iter-table-head" class="bg-slate-50 text-slate-500 sticky top-0"></tr></thead>
+                            <tbody id="iter-table-body" class="text-xs font-mono text-slate-600 divide-y divide-slate-100"></tbody>
+                        </table>
                     </div>
                 </div>
-                <div>
-                    <p class="section-title mb-3">Emission Matrix B</p>
-                    <div class="card p-5">
-                        <div id="heatmap-B" class="flex justify-center"></div>
-                    </div>
+            </section>
+        </div>
+
+        <!-- Extra / Bottom / Hidden by Default -->
+        <section id="error-section" class="hidden"><div class="card p-4"><div id="error-chart"></div></div></section>
+        <section id="comp-section" class="hidden"><div class="card p-4"><div id="comp-chart"></div></div></section>
+        <section id="intermediate-section" class="hidden mt-8">
+             <p class="section-title mb-3">Intermediate Variables</p>
+             <div class="card p-4 text-xs">
+                <div class="flex gap-2 mb-2">
+                    <button id="btn-show-alpha">Alpha</button>
+                    <button id="btn-show-beta">Beta</button>
+                    <button id="btn-show-gamma">Gamma</button>
                 </div>
-            </div>
+                <div id="intermediate-container" class="overflow-auto"></div>
+             </div>
         </section>
-
-        <!-- ══════════════ 8. PI BARS ══════════════ -->
-        <section id="pi-section" class="hidden">
-            <p class="section-title mb-3">Initial Distribution &pi;</p>
-            <div class="card p-5">
-                <div id="pi-bars" class="space-y-3"></div>
-            </div>
-        </section>
-
-        <!-- ══════════════ 9. PARAMETER EVOLUTION ══════════════ -->
-        <section id="evolution-section" class="hidden">
-            <p class="section-title mb-3">Parameter Evolution &mdash; A[i][j] over iterations</p>
-            <div class="card p-5">
-                <div id="evolution-chart" style="width:100%; height:320px;"></div>
-            </div>
-        </section>
-
-        <!-- ══════════════ 10. ITERATION LOG TABLE ══════════════ -->
-        <section id="iterlog-section" class="hidden">
-            <p class="section-title mb-3">Iteration Log</p>
-            <div class="card">
-                <div style="max-height: 420px; overflow-y: auto; overflow-x: auto;">
-                    <table class="iter-table w-full text-left" id="iter-table">
-                        <thead>
-                            <tr id="iter-table-head"></tr>
-                        </thead>
-                        <tbody id="iter-table-body"></tbody>
-                    </table>
-                </div>
-            </div>
-        </section>
-
-        <!-- ══════════════ 11. FINAL SUMMARY TABLE ══════════════ -->
-        <section id="summary-section" class="hidden">
-            <p class="section-title mb-3">Final Learned Parameters</p>
-            <div class="card p-6" id="summary-content"></div>
-        </section>
-
-        <!-- ══════════════ 12. ALGORITHM EXPLANATION ══════════════ -->
-        <section>
-            <p class="section-title mb-3">Algorithm Reference</p>
-            <div class="card p-6">
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-8 text-sm text-slate-700 leading-relaxed">
-                    <div>
-                        <h3 class="font-semibold text-slate-900 mb-2">Hidden Markov Model</h3>
-                        <p class="mb-3">An HMM is defined by <span class="font-mono-num text-sapphire-700">&lambda; =
-                                (A, B, &pi;)</span> where
-                            <strong>A</strong> is the state transition matrix,
-                            <strong>B</strong> is the observation emission matrix, and
-                            <strong>&pi;</strong> is the initial state distribution.
-                        </p>
-                        <h3 class="font-semibold text-slate-900 mb-2">Baum&ndash;Welch Algorithm</h3>
-                        <p>An EM procedure that iteratively re-estimates the HMM parameters to maximize
-                            <span class="font-mono-num text-sapphire-700">P(O|&lambda;)</span>.
-                            Each iteration is guaranteed to increase (or maintain) the log-likelihood.
-                        </p>
-                    </div>
-                    <div>
-                        <h3 class="font-semibold text-slate-900 mb-2">E-Step</h3>
-                        <ul class="list-disc list-inside space-y-1 mb-3 text-slate-600">
-                            <li>Compute <span class="font-mono-num">&alpha;</span> (forward variables)</li>
-                            <li>Compute <span class="font-mono-num">&beta;</span> (backward variables)</li>
-                            <li>Compute <span class="font-mono-num">&gamma;<sub>t</sub>(i)</span> =
-                                P(q<sub>t</sub>=S<sub>i</sub> | O, &lambda;)</li>
-                            <li>Compute <span class="font-mono-num">&xi;<sub>t</sub>(i,j)</span> =
-                                P(q<sub>t</sub>=S<sub>i</sub>, q<sub>t+1</sub>=S<sub>j</sub> | O, &lambda;)</li>
-                        </ul>
-                        <h3 class="font-semibold text-slate-900 mb-2">M-Step</h3>
-                        <ul class="list-disc list-inside space-y-1 text-slate-600">
-                            <li>Update <span class="font-mono-num">A[i][j]</span> = &Sigma;&xi; / &Sigma;&gamma;</li>
-                            <li>Update <span class="font-mono-num">B[j][k]</span> = &Sigma;&gamma;(O<sub>t</sub>=k) /
-                                &Sigma;&gamma;</li>
-                            <li>Update <span class="font-mono-num">&pi;[i]</span> = &gamma;<sub>1</sub>(i)</li>
-                        </ul>
-                    </div>
-                </div>
-            </div>
-        </section>
+        <section id="summary-section" class="hidden mt-8"></section>
 
     </main>
 
     <!-- ══════════════ FOOTER ══════════════ -->
-    <footer class="border-t border-academic-border mt-12">
-        <div class="max-w-7xl mx-auto px-6 py-5 flex items-center justify-between text-xs text-academic-muted">
+    <footer class="border-t border-slate-100 mt-12 bg-white">
+        <div class="max-w-7xl mx-auto px-6 py-6 flex items-center justify-between text-xs text-slate-400">
             <span>HMM Baum&ndash;Welch Engine &middot; v1.0</span>
-            <span>Flask-SocketIO &middot; D3.js &middot; Plotly.js</span>
+            <div class="hidden md:block">Flask-SocketIO &middot; D3.js &middot; Plotly.js</div>
         </div>
     </footer>
 
     <div id="d3-tooltip" class="d3-tooltip" style="display:none;"></div>
 
-    <!-- ══════════════════════════════════════════════════════════════════
-     JAVASCRIPT
-     ══════════════════════════════════════════════════════════════════ -->
-    <script src="/static/js/hmm_diagram.js?v=6"></script>
+    <!-- JAVASCRIPT -->
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <script src="/static/js/hmm_diagram.js?v=custom2"></script>
     <script>
             (function () {
                 'use strict';
@@ -493,6 +409,7 @@
                 let nObsSymbols = 3;
                 let evolutionData = {};
                 let hmmDiagram = null;
+                // hmmDiagram3D removed
                 let lastData = null;
                 let iterCount = 0;
 
@@ -505,8 +422,28 @@
                 const statusText = document.getElementById('status-text');
                 const tooltip = document.getElementById('d3-tooltip');
 
-                const SECTIONS = ['results-section', 'll-section', 'prob-section', 'error-section', 'diagram-section',
-                    'heatmaps-section', 'pi-section', 'evolution-section', 'iterlog-section'];
+                const SECTIONS = ['results-section', 'll-section', 'prob-section', 'error-section', 'comp-section', 'diagram-section',
+                    'heatmaps-section', 'pi-section', 'evolution-section', 'iterlog-section', 'intermediate-section'];
+
+                let currentInterimView = 'alpha';
+                document.getElementById('btn-show-alpha').addEventListener('click', () => setInterimView('alpha'));
+                document.getElementById('btn-show-beta').addEventListener('click', () => setInterimView('beta'));
+                document.getElementById('btn-show-gamma').addEventListener('click', () => setInterimView('gamma'));
+
+                function setInterimView(view) {
+                    currentInterimView = view;
+                    // Update buttons
+                    ['alpha', 'beta', 'gamma'].forEach(v => {
+                        const btn = document.getElementById(`btn-show-${v}`);
+                        if (v === view) {
+                            btn.className = 'text-xs font-semibold px-3 py-1 rounded bg-sapphire-100 text-sapphire-700';
+                        } else {
+                            btn.className = 'text-xs font-semibold px-3 py-1 rounded hover:bg-slate-100 text-slate-600';
+                        }
+                    });
+                    // Refresh table if data exists
+                    if (lastData) updateIntermediate(lastData.alpha, lastData.beta, lastData.gamma);
+                }
 
                 // ── Presets ──
                 document.getElementById('preset-weather').addEventListener('click', () => {
@@ -613,6 +550,7 @@
                     initLLChart();
                     initProbChart();
                     initErrorChart();
+                    initCompChart();
                     initEvolutionChart();
 
                     // Connect
@@ -655,11 +593,14 @@
                         updateLLChart(data);
                         updateProbChart(data);
                         updateErrorChart(data);
+                        updateCompChart(data);
                         if (hmmDiagram) hmmDiagram.feedIteration(data);
+                        // hmmDiagram3D removed
                         updateHeatmaps(data.A, data.B);
                         updatePi(data.pi);
                         updateEvolution(data);
                         appendIterRow(data);
+                        updateIntermediate(data.alpha, data.beta, data.gamma);
                     });
 
                     socket.on('training_complete', function (data) {
@@ -766,6 +707,30 @@
                     // Use Negative Log Likelihood as "Error" (Loss)
                     const loss = -data.log_likelihood;
                     Plotly.extendTraces('error-chart', { x: [[data.iteration]], y: [[loss]] }, [0]);
+                }
+
+                // ══════════════════════════════════════════════════
+                //  4d. PROB COMPLEMENT CHART
+                // ══════════════════════════════════════════════════
+                function initCompChart() {
+                    Plotly.newPlot('comp-chart', [{
+                        x: [], y: [], mode: 'lines',
+                        line: { color: '#D946EF', width: 2 }, // Fuchsia
+                        hovertemplate: 'Iter %{x}<br>1 - P: %{y:.6f}<extra></extra>'
+                    }], {
+                        margin: { t: 10, r: 30, b: 45, l: 75 },
+                        xaxis: { title: { text: 'Model Version (\u03bb)', font: { family: 'Inter', size: 12, color: '#64748b' } }, gridcolor: '#f1f0ed', zeroline: false },
+                        yaxis: { title: { text: '1 - P(O|\u03bb)', font: { family: 'Inter', size: 12, color: '#64748b' } }, gridcolor: '#f1f0ed', zeroline: false },
+                        paper_bgcolor: 'rgba(0,0,0,0)', plot_bgcolor: 'rgba(0,0,0,0)',
+                        font: { family: 'JetBrains Mono', size: 10, color: '#64748b' },
+                        hovermode: 'x unified'
+                    }, { responsive: true, displayModeBar: false });
+                }
+
+                function updateCompChart(data) {
+                    const prob = Math.exp(data.log_likelihood);
+                    const comp = 1 - prob;
+                    Plotly.extendTraces('comp-chart', { x: [[data.iteration]], y: [[comp]] }, [0]);
                 }
 
                 // (State diagram handled by external HMMDiagram class)
@@ -904,6 +869,49 @@
                     // Auto-scroll to bottom
                     const wrapper = tbody.closest('div');
                     if (wrapper) wrapper.scrollTop = wrapper.scrollHeight;
+                }
+
+                // ══════════════════════════════════════════════════
+                //  10.5 INTERMEDIATE VARS
+                // ══════════════════════════════════════════════════
+                function updateIntermediate(alpha, beta, gamma) {
+                    if (!alpha || !beta || !gamma) return;
+                    
+                    let data = [];
+                    if (currentInterimView === 'alpha') data = alpha;
+                    else if (currentInterimView === 'beta') data = beta;
+                    else if (currentInterimView === 'gamma') data = gamma;
+
+                    // Limit to 20 rows
+                    const limit = Math.min(20, data.length);
+                    const T = data.length;
+                    const N = data[0].length;
+
+                    let html = '<table class="iter-table w-full text-left border-collapse border border-slate-200">';
+                    
+                    // Header
+                    html += '<thead><tr><th class="border border-slate-200 bg-slate-50">t</th>';
+                    for(let i=0; i<N; i++) html += `<th class="border border-slate-200 bg-slate-50 text-center">S${i}</th>`;
+                    html += '</tr></thead><tbody>';
+
+                    for(let t=0; t<limit; t++) {
+                        html += `<tr><td class="border border-slate-200 font-semibold bg-slate-50 text-center">${t}</td>`;
+                        for(let i=0; i<N; i++) {
+                            // Highlight large values
+                            const val = data[t][i];
+                            const isLarge = val > (1.0/N);
+                            const style = isLarge ? 'font-weight:600; color:#1e293b;' : 'color:#94a3b8;';
+                            html += `<td class="border border-slate-200 text-center" style="${style}">${val.toExponential(4)}</td>`;
+                        }
+                        html += '</tr>';
+                    }
+                    html += '</tbody></table>';
+                    
+                    if (T > limit) {
+                         html += `<p class="text-[10px] text-slate-400 mt-1 text-center">... and ${T - limit} more time steps ...</p>`;
+                    }
+
+                    document.getElementById('intermediate-container').innerHTML = html;
                 }
 
                 // ══════════════════════════════════════════════════

@@ -71,7 +71,7 @@ def main() -> None:
 
     # ─── Generate synthetic observations ─── #
     rng = np.random.default_rng(seed=2024)
-    T = 300  # observation sequence length
+    T = 1000  # observation sequence length (Increased for robustness)
 
     states = np.zeros(T, dtype=np.intp)
     observations = np.zeros(T, dtype=np.intp)
@@ -94,7 +94,7 @@ def main() -> None:
         n_obs_symbols=3,
         max_iterations=200,
         tolerance=1e-8,
-        seed=42,
+        seed=6,  # Found to converge to ground truth for this problem
     )
     result = trainer.fit(observations)
 

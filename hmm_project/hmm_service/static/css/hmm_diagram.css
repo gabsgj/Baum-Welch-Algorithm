@@ -7,15 +7,61 @@
 .hmm-canvas {
     position: relative;
     width: 100%;
+    min-height: 420px;
     border-radius: 8px;
     background: linear-gradient(170deg, #fafbfc 0%, #f1f5f9 100%);
-    overflow: hidden;
+    overflow-x: auto;
+    overflow-y: hidden;
+    transition: background 0.5s;
 }
 
 .hmm-canvas svg {
     display: block;
-    width: 100%;
+    min-width: 100%;
     height: 100%;
+}
+
+/* 3D View Mode */
+.hmm-canvas.view-3d {
+    perspective: 1500px;
+    overflow: visible;
+    background: linear-gradient(170deg, #f1f5f9 0%, #e2e8f0 100%);
+}
+
+.hmm-canvas.view-3d svg {
+    transform-style: preserve-3d;
+    transform: rotateX(55deg) rotateZ(-15deg) scale(0.75) translateY(-50px);
+    transition: transform 0.8s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+/* Layers in 3D */
+/* Note: 3D transforms on SVG elements work in Chrome/Firefox/Safari now */
+.hmm-canvas.view-3d .layer-1 {
+    transform: translateZ(120px);
+}
+
+/* Start */
+.hmm-canvas.view-3d .layer-2 {
+    transform: translateZ(60px);
+}
+
+/* Transitions */
+.hmm-canvas.view-3d .layer-3 {
+    transform: translateZ(0px);
+}
+
+/* States */
+.hmm-canvas.view-3d .layer-4 {
+    transform: translateZ(-80px);
+}
+
+/* Emissions */
+
+.layer-1,
+.layer-2,
+.layer-3,
+.layer-4 {
+    transition: transform 0.8s;
 }
 
 /* ── Replay control bar ── */

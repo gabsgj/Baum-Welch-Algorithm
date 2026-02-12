@@ -19,6 +19,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from hmm_core.model.parameters import HMMParameters
+from hmm_core.initialization.random_init import random_hmm_parameters
 from hmm_core.training.trainer import HMMTrainer
 from hmm_core.training.training_result import TrainingResult
 from hmm_visualization.heatmaps import plot_heatmap
@@ -124,6 +125,16 @@ def run_training_live(
     """
     obs_array = np.array(observations, dtype=np.intp)
 
+    # If the user supplied an explicit transition matrix 'A', trust its
+    # dimensionality (n_states) over the request parameter.
+    if init_params and "A" in init_params:
+        try:
+            _A = np.array(init_params["A"])
+            if _A.ndim == 2 and _A.shape[0] == _A.shape[1]:
+                n_states = _A.shape[0]
+        except Exception:
+            pass  # Let validation fail naturally later if A is malformed.
+
     trainer = HMMTrainer(
         n_states=n_states,
         n_obs_symbols=n_obs_symbols,
@@ -134,11 +145,13 @@ def run_training_live(
     hmm_init: Optional[HMMParameters] = None
     if init_params:
         try:
-            hmm_init = HMMParameters(
-                A=np.array(init_params['A'], dtype=np.float64),
-                B=np.array(init_params['B'], dtype=np.float64),
-                pi=np.array(init_params['pi'], dtype=np.float64)
-            )
+            # Start with random params (using potentially updated n_states),
+            # then override with user-supplied values.
+            base = random_hmm_parameters(n_states, n_obs_symbols, seed=seed)
+            A = np.array(init_params['A'], dtype=np.float64) if 'A' in init_params else base.A
+            B = np.array(init_params['B'], dtype=np.float64) if 'B' in init_params else base.B
+            pi = np.array(init_params['pi'], dtype=np.float64) if 'pi' in init_params else base.pi
+            hmm_init = HMMParameters(A=A, B=B, pi=pi)
         except Exception as e:
             raise ValueError(f"Invalid initialization parameters: {e}")
 

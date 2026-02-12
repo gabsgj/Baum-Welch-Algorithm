@@ -130,6 +130,11 @@ class HMMTrainer:
                 iteration, ll_new, ll_new - ll_old,
             )
 
+            # ----- Responsibilities -----
+            gamma, xi = compute_responsibilities(
+                fb.alpha, fb.beta, model.A, model.B, observations,
+            )
+
             # ----- Convergence check -----
             if iteration > 1 and check_convergence(
                 ll_new, ll_old, self.tolerance, iteration, self.max_iterations,
@@ -145,14 +150,12 @@ class HMMTrainer:
                         "A": model.params.A.tolist(),
                         "B": model.params.B.tolist(),
                         "pi": model.params.pi.tolist(),
+                        "alpha": fb.alpha.tolist(),
+                        "beta": fb.beta.tolist(),
+                        "gamma": gamma.tolist(),
                         "converged": True,
                     })
                 break
-
-            # ----- Responsibilities -----
-            gamma, xi = compute_responsibilities(
-                fb.alpha, fb.beta, model.A, model.B, observations,
-            )
 
             # ----- M-step -----
             new_params = baum_welch_update(
@@ -169,6 +172,9 @@ class HMMTrainer:
                     "A": model.params.A.tolist(),
                     "B": model.params.B.tolist(),
                     "pi": model.params.pi.tolist(),
+                    "alpha": fb.alpha.tolist(),
+                    "beta": fb.beta.tolist(),
+                    "gamma": gamma.tolist(),
                     "converged": False,
                 })
 
