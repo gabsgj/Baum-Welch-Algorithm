@@ -1,0 +1,177 @@
+/* ═══════════════════════════════════════════════════════
+   HMM State Transition Diagram — Styles
+   3-tier: π (Start) → Hidden States → Observations
+   ═══════════════════════════════════════════════════════ */
+
+/* ── Canvas ── */
+.hmm-canvas {
+    position: relative;
+    width: 100%;
+    border-radius: 8px;
+    background: linear-gradient(170deg, #fafbfc 0%, #f1f5f9 100%);
+    overflow: hidden;
+}
+
+.hmm-canvas svg {
+    display: block;
+    width: 100%;
+    height: 100%;
+}
+
+/* ── Replay control bar ── */
+.hmm-controls {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 10px;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+}
+
+.hmm-ctrl-btn {
+    width: 32px;
+    height: 32px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid #cbd5e1;
+    border-radius: 6px;
+    background: #fff;
+    color: #334155;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.15s;
+}
+
+.hmm-ctrl-btn:hover:not(:disabled) {
+    background: #f1f5f9;
+    border-color: #94a3b8;
+}
+
+.hmm-ctrl-btn:disabled {
+    opacity: 0.35;
+    cursor: default;
+}
+
+.hmm-ctrl-btn.active {
+    background: #ede9fe;
+    border-color: #8b5cf6;
+    color: #6d28d9;
+}
+
+/* Speed dropdown */
+.hmm-speed-select {
+    padding: 4px 6px;
+    border-radius: 6px;
+    border: 1px solid #cbd5e1;
+    background: #fff;
+    font-size: 12px;
+    color: #334155;
+    cursor: pointer;
+    font-family: 'JetBrains Mono', monospace;
+}
+
+/* Timeline slider */
+.hmm-timeline {
+    flex: 1;
+    min-width: 80px;
+    height: 6px;
+    -webkit-appearance: none;
+    appearance: none;
+    background: linear-gradient(to right, #8b5cf6 var(--progress, 0%), #e2e8f0 var(--progress, 0%));
+    border-radius: 3px;
+    cursor: pointer;
+    margin: 0 4px;
+}
+
+.hmm-timeline::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: #7c3aed;
+    border: 2px solid #fff;
+    box-shadow: 0 1px 4px rgba(124, 58, 237, 0.3);
+    cursor: grab;
+}
+
+.hmm-timeline::-moz-range-thumb {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: #7c3aed;
+    border: 2px solid #fff;
+}
+
+/* Iter label */
+.hmm-iter-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: #64748b;
+    white-space: nowrap;
+    min-width: 80px;
+    text-align: center;
+}
+
+/* ── Inspector panel ── */
+.hmm-inspector {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.3s ease, padding 0.3s ease;
+    background: #fafbfc;
+    border-radius: 8px;
+    border: 1px solid transparent;
+    padding: 0 12px;
+    font-size: 12px;
+}
+
+.hmm-inspector.visible {
+    max-height: 600px;
+    padding: 12px;
+    border-color: #e2e8f0;
+}
+
+.hmm-inspector h4 {
+    margin: 0 0 8px 0;
+    font-size: 13px;
+    font-weight: 700;
+    color: #1e293b;
+}
+
+.hmm-inspector table {
+    border-collapse: collapse;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    margin-bottom: 8px;
+}
+
+.hmm-inspector th,
+.hmm-inspector td {
+    border: 1px solid #e2e8f0;
+    padding: 3px 8px;
+    text-align: center;
+}
+
+.hmm-inspector th {
+    background: #f1f5f9;
+    font-weight: 600;
+    color: #475569;
+}
+
+.hmm-inspector td {
+    color: #334155;
+}
+
+/* ── Particle glow ── */
+@keyframes particle-glow {
+
+    0%,
+    100% {
+        opacity: 0.6;
+    }
+
+    50% {
+        opacity: 1;
+    }
+}

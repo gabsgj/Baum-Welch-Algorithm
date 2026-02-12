@@ -1,25 +1,24 @@
 """
 hmm_runner.py
 =============
-Orchestrates HMM training and visualisation generation.
+Orchestrates HMM training for both REST and WebSocket modes.
 
-Bridges ``hmm_core`` (pure engine) and ``hmm_visualization`` to produce
-training results plus base-64-encoded plot images for the API layer.
-
-Contains ZERO Flask code.
+Contains ZERO Flask code — the ``on_iteration`` callback is a plain
+callable injected by the service layer.
 """
 
 from __future__ import annotations
 
 import base64
 import io
-from typing import Any, Optional
+from typing import Any, Callable, Optional
 
 import matplotlib
 matplotlib.use("Agg")  # Non-interactive backend for server-side rendering.
 import matplotlib.pyplot as plt
 import numpy as np
 
+from hmm_core.model.parameters import HMMParameters
 from hmm_core.training.trainer import HMMTrainer
 from hmm_core.training.training_result import TrainingResult
 from hmm_visualization.heatmaps import plot_heatmap
@@ -36,6 +35,10 @@ def _fig_to_base64(fig: plt.Figure, fmt: str = "png") -> str:
     return base64.b64encode(buf.read()).decode("ascii")
 
 
+# ------------------------------------------------------------------ #
+#  Synchronous (REST) training — kept for backward-compatibility      #
+# ------------------------------------------------------------------ #
+
 def run_training(
     observations: list[int],
     n_states: int,
@@ -44,14 +47,7 @@ def run_training(
     tolerance: float = 1e-6,
     seed: Optional[int] = None,
 ) -> dict[str, Any]:
-    """Train an HMM and return results + plot images.
-
-    Returns
-    -------
-    dict
-        Keys: ``converged``, ``n_iterations``, ``final_log_likelihood``,
-        ``A``, ``B``, ``pi``, ``log_likelihood_history``, ``plots``.
-    """
+    """Train an HMM and return results + plot images (REST mode)."""
     obs_array = np.array(observations, dtype=np.intp)
 
     trainer = HMMTrainer(
@@ -66,11 +62,9 @@ def run_training(
     # ─── Generate plots ─── #
     plots: dict[str, str] = {}
 
-    # Log-likelihood curve.
     fig_ll = plot_log_likelihood(result.log_likelihood_history, show=False)
     plots["log_likelihood"] = _fig_to_base64(fig_ll)
 
-    # Transition heatmap.
     state_labels = [f"S{i}" for i in range(n_states)]
     fig_a = plot_heatmap(
         result.model_params.A,
@@ -81,7 +75,6 @@ def run_training(
     )
     plots["heatmap_A"] = _fig_to_base64(fig_a)
 
-    # Emission heatmap.
     obs_labels = [f"O{k}" for k in range(n_obs_symbols)]
     fig_b = plot_heatmap(
         result.model_params.B,
@@ -92,16 +85,11 @@ def run_training(
     )
     plots["heatmap_B"] = _fig_to_base64(fig_b)
 
-    # State diagram (SVG as base64).
     try:
-        dot = render_state_diagram(
-            result.model_params.A,
-            state_labels=state_labels,
-        )
+        dot = render_state_diagram(result.model_params.A, state_labels=state_labels)
         svg_bytes = dot.pipe(format="svg")
         plots["state_diagram"] = base64.b64encode(svg_bytes).decode("ascii")
     except Exception:
-        # Graphviz binary might not be installed — degrade gracefully.
         plots["state_diagram"] = ""
 
     return {
@@ -113,4 +101,55 @@ def run_training(
         "pi": result.model_params.pi.tolist(),
         "log_likelihood_history": result.log_likelihood_history,
         "plots": plots,
+    }
+
+
+# ------------------------------------------------------------------ #
+#  Live (WebSocket) training — emits per-iteration updates            #
+# ------------------------------------------------------------------ #
+
+def run_training_live(
+    observations: list[int],
+    n_states: int,
+    n_obs_symbols: int,
+    max_iterations: int = 200,
+    tolerance: float = 1e-6,
+    seed: Optional[int] = None,
+    init_params: Optional[dict[str, Any]] = None,
+    on_iteration: Optional[Callable[[dict[str, Any]], None]] = None,
+) -> dict[str, Any]:
+    """Train an HMM with per-iteration callback (WebSocket mode).
+
+    No plots are generated — the client renders everything live.
+    """
+    obs_array = np.array(observations, dtype=np.intp)
+
+    trainer = HMMTrainer(
+        n_states=n_states,
+        n_obs_symbols=n_obs_symbols,
+        max_iterations=max_iterations,
+        tolerance=tolerance,
+        seed=seed,
+    )
+    hmm_init: Optional[HMMParameters] = None
+    if init_params:
+        try:
+            hmm_init = HMMParameters(
+                A=np.array(init_params['A'], dtype=np.float64),
+                B=np.array(init_params['B'], dtype=np.float64),
+                pi=np.array(init_params['pi'], dtype=np.float64)
+            )
+        except Exception as e:
+            raise ValueError(f"Invalid initialization parameters: {e}")
+
+    result: TrainingResult = trainer.fit(
+        obs_array,
+        initial_params=hmm_init,
+        on_iteration=on_iteration,
+    )
+
+    return {
+        "converged": result.converged,
+        "n_iterations": result.n_iterations,
+        "final_log_likelihood": result.log_likelihood_history[-1],
     }

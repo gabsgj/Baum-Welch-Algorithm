@@ -1,24 +1,42 @@
 """
 routes.py
 =========
-Flask API blueprint for HMM training.
+Flask API blueprint + SocketIO event handlers for HMM training.
 
-Endpoints
----------
+REST endpoints
+--------------
 POST /api/train
-    Accept observation sequence + config, return trained parameters + plots.
+    Synchronous training (kept for backward-compatibility).
+
+WebSocket events
+----------------
+Client → Server:  "start_training"   { n_states, observations, max_iterations, tolerance }
+Server → Client:  "training_update"  { iteration, log_likelihood, A, B, pi, converged }
+Server → Client:  "training_complete" { converged, n_iterations, final_ll }
+Server → Client:  "training_error"   { error }
 """
 
 from __future__ import annotations
 
-from flask import Blueprint, jsonify, request
+import logging
+from typing import Any
 
-from hmm_service.api.schemas import TrainRequest, TrainResponse
-from hmm_service.services.hmm_runner import run_training
+import numpy as np
+from flask import Blueprint, jsonify, request
+from flask_socketio import SocketIO, emit
+
+from hmm_service.api.schemas import TrainRequest
+from hmm_service.services.hmm_runner import run_training, run_training_live
 from hmm_service.services.model_store import store
+
+logger = logging.getLogger(__name__)
 
 api_bp = Blueprint("api", __name__, url_prefix="/api")
 
+
+# ------------------------------------------------------------------ #
+#  REST endpoint (backward-compatible)                                #
+# ------------------------------------------------------------------ #
 
 @api_bp.route("/train", methods=["POST"])
 def train():
@@ -45,16 +63,58 @@ def train():
         return jsonify({"error": f"Training failed: {exc}"}), 500
 
     model_id = store.save(result)
+    return jsonify({"model_id": model_id, **result}), 200
 
-    response = TrainResponse(
-        model_id=model_id,
-        converged=result["converged"],
-        n_iterations=result["n_iterations"],
-        final_log_likelihood=result["final_log_likelihood"],
-        A=result["A"],
-        B=result["B"],
-        pi=result["pi"],
-        log_likelihood_history=result["log_likelihood_history"],
-        plots=result["plots"],
-    )
-    return jsonify(response.to_dict()), 200
+
+# ------------------------------------------------------------------ #
+#  WebSocket event handlers                                           #
+# ------------------------------------------------------------------ #
+
+def register_socket_events(sio: SocketIO) -> None:
+    """Attach SocketIO event handlers to the given instance."""
+
+    @sio.on("start_training")
+    def handle_start_training(data: dict[str, Any]) -> None:
+        """Handle a training request over WebSocket."""
+        logger.info("WebSocket start_training received: %s", data)
+
+        try:
+            observations = data.get("observations", [])
+            if isinstance(observations, str):
+                observations = [int(x.strip()) for x in observations.split(",") if x.strip()]
+
+            n_states = int(data.get("n_states", 2))
+            max_iterations = int(data.get("max_iterations", 200))
+            tolerance = float(data.get("tolerance", 1e-6))
+            init_params = data.get("init_params")
+
+            obs_array = np.array(observations, dtype=np.intp)
+            n_obs_symbols = int(obs_array.max()) + 1 if len(obs_array) > 0 else 1
+
+        except Exception as exc:
+            emit("training_error", {"error": f"Invalid input: {exc}"})
+            return
+
+        def on_iteration(update: dict[str, Any]) -> None:
+            """Callback invoked after each EM iteration."""
+            emit("training_update", update)
+            sio.sleep(0)  # yield to eventlet so the message is flushed
+
+        try:
+            result = run_training_live(
+                observations=observations,
+                n_states=n_states,
+                n_obs_symbols=n_obs_symbols,
+                max_iterations=max_iterations,
+                tolerance=tolerance,
+                init_params=init_params,
+                on_iteration=on_iteration,
+            )
+            emit("training_complete", {
+                "converged": result["converged"],
+                "n_iterations": result["n_iterations"],
+                "final_log_likelihood": result["final_log_likelihood"],
+            })
+        except Exception as exc:
+            logger.exception("Training failed")
+            emit("training_error", {"error": str(exc)})

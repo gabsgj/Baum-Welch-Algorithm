@@ -14,7 +14,7 @@ Orchestrates the Baum-Welch algorithm:
 from __future__ import annotations
 
 import logging
-from typing import Optional
+from typing import Any, Callable, Optional
 
 import numpy as np
 import numpy.typing as npt
@@ -29,6 +29,9 @@ from hmm_core.optimization.convergence import check_convergence
 from hmm_core.training.training_result import TrainingResult
 
 logger = logging.getLogger(__name__)
+
+# Type alias for the per-iteration callback.
+IterationCallback = Callable[[dict[str, Any]], None]
 
 
 class HMMTrainer:
@@ -74,6 +77,7 @@ class HMMTrainer:
         self,
         observations: npt.NDArray[np.intp],
         initial_params: Optional[HMMParameters] = None,
+        on_iteration: Optional[IterationCallback] = None,
     ) -> TrainingResult:
         """Run the full Baum-Welch EM loop.
 
@@ -84,6 +88,10 @@ class HMMTrainer:
         initial_params : HMMParameters or None
             Starting parameters.  If ``None``, random stochastic matrices
             are generated via Dirichlet sampling.
+        on_iteration : callable or None
+            Optional callback invoked after each EM iteration with a dict
+            containing ``iteration``, ``log_likelihood``, ``A``, ``B``,
+            ``pi``, and ``converged``.
 
         Returns
         -------
@@ -128,6 +136,17 @@ class HMMTrainer:
             ):
                 converged = True
                 logger.info("Converged at iteration %d.", iteration)
+
+                # Notify callback of final converged state.
+                if on_iteration is not None:
+                    on_iteration({
+                        "iteration": iteration,
+                        "log_likelihood": float(ll_new),
+                        "A": model.params.A.tolist(),
+                        "B": model.params.B.tolist(),
+                        "pi": model.params.pi.tolist(),
+                        "converged": True,
+                    })
                 break
 
             # ----- Responsibilities -----
@@ -141,6 +160,17 @@ class HMMTrainer:
             )
             model.params = new_params
             ll_old = ll_new
+
+            # ----- Per-iteration callback -----
+            if on_iteration is not None:
+                on_iteration({
+                    "iteration": iteration,
+                    "log_likelihood": float(ll_new),
+                    "A": model.params.A.tolist(),
+                    "B": model.params.B.tolist(),
+                    "pi": model.params.pi.tolist(),
+                    "converged": False,
+                })
 
         return TrainingResult(
             model_params=model.params,
