@@ -1,0 +1,9 @@
+{
+  "build": {
+    "builder": "python"
+  },
+  "serverless": {
+    "type": "wsgi",
+    "app": "wsgi:app"
+  }
+}
