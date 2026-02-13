@@ -10,7 +10,8 @@ This guide walks you through deploying the HMM Baum-Welch application to **Zeabu
    - `wsgi.py` — WSGI application entry point
    - `zeabur.json` — Zeabur configuration
    - `Procfile` — Process file for production
-   - `pyproject.toml` — Updated with gunicorn
+   - `requirements.txt` — Dependencies file
+   - `runtime.txt` — Python version
 
 ## Step 1: Push Your Code to GitHub
 
