@@ -1,9 +1,11 @@
 /* ═══════════════════════════════════════════════════════
-   HMM State Transition Diagram — Styles
+   State Transition Diagram — Styles
+   Standalone reusable CSS for the state transition diagram library.
    3-tier: π (Start) → Hidden States → Observations
    ═══════════════════════════════════════════════════════ */
 
 /* ── Canvas ── */
+.std-canvas,
 .hmm-canvas {
     position: relative;
     width: 100%;
@@ -15,6 +17,7 @@
     transition: background 0.5s;
 }
 
+.std-canvas svg,
 .hmm-canvas svg {
     display: block;
     min-width: 100%;
@@ -22,12 +25,14 @@
 }
 
 /* 3D View Mode */
+.std-canvas.view-3d,
 .hmm-canvas.view-3d {
     perspective: 1500px;
     overflow: visible;
     background: linear-gradient(170deg, #f1f5f9 0%, #e2e8f0 100%);
 }
 
+.std-canvas.view-3d svg,
 .hmm-canvas.view-3d svg {
     transform-style: preserve-3d;
     transform: rotateX(55deg) rotateZ(-15deg) scale(0.75) translateY(-50px);
@@ -35,22 +40,25 @@
 }
 
 /* Layers in 3D */
-/* Note: 3D transforms on SVG elements work in Chrome/Firefox/Safari now */
+.std-canvas.view-3d .layer-1,
 .hmm-canvas.view-3d .layer-1 {
     transform: translateZ(120px);
 }
 
 /* Start */
+.std-canvas.view-3d .layer-2,
 .hmm-canvas.view-3d .layer-2 {
     transform: translateZ(60px);
 }
 
 /* Transitions */
+.std-canvas.view-3d .layer-3,
 .hmm-canvas.view-3d .layer-3 {
     transform: translateZ(0px);
 }
 
 /* States */
+.std-canvas.view-3d .layer-4,
 .hmm-canvas.view-3d .layer-4 {
     transform: translateZ(-80px);
 }
@@ -65,6 +73,7 @@
 }
 
 /* ── Replay control bar ── */
+.std-controls,
 .hmm-controls {
     display: flex;
     align-items: center;
@@ -75,6 +84,7 @@
     border-radius: 8px;
 }
 
+.std-ctrl-btn,
 .hmm-ctrl-btn {
     width: 32px;
     height: 32px;
@@ -90,16 +100,19 @@
     transition: all 0.15s;
 }
 
+.std-ctrl-btn:hover:not(:disabled),
 .hmm-ctrl-btn:hover:not(:disabled) {
     background: #f1f5f9;
     border-color: #94a3b8;
 }
 
+.std-ctrl-btn:disabled,
 .hmm-ctrl-btn:disabled {
     opacity: 0.35;
     cursor: default;
 }
 
+.std-ctrl-btn.active,
 .hmm-ctrl-btn.active {
     background: #ede9fe;
     border-color: #8b5cf6;
@@ -107,6 +120,7 @@
 }
 
 /* Speed dropdown */
+.std-speed-select,
 .hmm-speed-select {
     padding: 4px 6px;
     border-radius: 6px;
@@ -119,18 +133,34 @@
 }
 
 /* Timeline slider */
+.std-timeline,
 .hmm-timeline {
     flex: 1;
     min-width: 80px;
-    height: 6px;
+    height: 20px;
     -webkit-appearance: none;
     appearance: none;
-    background: linear-gradient(to right, #8b5cf6 var(--progress, 0%), #e2e8f0 var(--progress, 0%));
-    border-radius: 3px;
+    background: transparent;
     cursor: pointer;
     margin: 0 4px;
 }
 
+.std-timeline::-webkit-slider-runnable-track,
+.hmm-timeline::-webkit-slider-runnable-track {
+    height: 6px;
+    border-radius: 3px;
+    background: linear-gradient(to right, #8b5cf6 var(--progress, 0%), #e2e8f0 var(--progress, 0%));
+}
+
+.std-timeline::-moz-range-track,
+.hmm-timeline::-moz-range-track {
+    height: 6px;
+    border-radius: 3px;
+    background: linear-gradient(to right, #8b5cf6 var(--progress, 0%), #e2e8f0 var(--progress, 0%));
+    border: none;
+}
+
+.std-timeline::-webkit-slider-thumb,
 .hmm-timeline::-webkit-slider-thumb {
     -webkit-appearance: none;
     width: 16px;
@@ -140,17 +170,21 @@
     border: 2px solid #fff;
     box-shadow: 0 1px 4px rgba(124, 58, 237, 0.3);
     cursor: grab;
+    margin-top: -5px;
 }
 
+.std-timeline::-moz-range-thumb,
 .hmm-timeline::-moz-range-thumb {
     width: 14px;
     height: 14px;
     border-radius: 50%;
     background: #7c3aed;
     border: 2px solid #fff;
+    cursor: grab;
 }
 
 /* Iter label */
+.std-iter-label,
 .hmm-iter-label {
     font-family: 'JetBrains Mono', monospace;
     font-size: 11px;
@@ -161,6 +195,7 @@
 }
 
 /* ── Inspector panel ── */
+.std-inspector,
 .hmm-inspector {
     max-height: 0;
     overflow: hidden;
@@ -172,12 +207,14 @@
     font-size: 12px;
 }
 
+.std-inspector.visible,
 .hmm-inspector.visible {
     max-height: 600px;
     padding: 12px;
     border-color: #e2e8f0;
 }
 
+.std-inspector h4,
 .hmm-inspector h4 {
     margin: 0 0 8px 0;
     font-size: 13px;
@@ -185,6 +222,7 @@
     color: #1e293b;
 }
 
+.std-inspector table,
 .hmm-inspector table {
     border-collapse: collapse;
     font-family: 'JetBrains Mono', monospace;
@@ -192,6 +230,8 @@
     margin-bottom: 8px;
 }
 
+.std-inspector th,
+.std-inspector td,
 .hmm-inspector th,
 .hmm-inspector td {
     border: 1px solid #e2e8f0;
@@ -199,12 +239,14 @@
     text-align: center;
 }
 
+.std-inspector th,
 .hmm-inspector th {
     background: #f1f5f9;
     font-weight: 600;
     color: #475569;
 }
 
+.std-inspector td,
 .hmm-inspector td {
     color: #334155;
 }
@@ -219,5 +261,102 @@
 
     50% {
         opacity: 1;
+    }
+}
+
+/* ── Fullscreen mode ── */
+#diagram-card:fullscreen,
+#diagram-card:-webkit-full-screen {
+    background: #ffffff;
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+#diagram-card:fullscreen .std-canvas,
+#diagram-card:fullscreen .hmm-canvas,
+#diagram-card:-webkit-full-screen .std-canvas,
+#diagram-card:-webkit-full-screen .hmm-canvas {
+    flex: 1;
+    min-height: 0;
+    height: auto !important;
+    overflow: hidden;
+}
+
+#diagram-card:fullscreen .std-canvas svg,
+#diagram-card:fullscreen .hmm-canvas svg,
+#diagram-card:-webkit-full-screen .std-canvas svg,
+#diagram-card:-webkit-full-screen .hmm-canvas svg {
+    width: 100% !important;
+    height: 100% !important;
+}
+
+#diagram-card:fullscreen .std-controls,
+#diagram-card:fullscreen .hmm-controls,
+#diagram-card:-webkit-full-screen .std-controls,
+#diagram-card:-webkit-full-screen .hmm-controls {
+    flex-shrink: 0;
+}
+
+#diagram-card:fullscreen .std-inspector,
+#diagram-card:fullscreen .hmm-inspector,
+#diagram-card:-webkit-full-screen .std-inspector,
+#diagram-card:-webkit-full-screen .hmm-inspector {
+    flex-shrink: 0;
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+/* ── Mobile responsive ── */
+@media (max-width: 640px) {
+    .std-controls,
+    .hmm-controls {
+        flex-wrap: wrap;
+        gap: 4px;
+        padding: 4px 6px;
+    }
+
+    .std-canvas,
+    .hmm-canvas {
+        min-height: 300px;
+    }
+
+    .std-timeline,
+    .hmm-timeline {
+        min-width: 100%;
+        order: 20;
+    }
+
+    .std-iter-label,
+    .hmm-iter-label {
+        min-width: auto;
+        font-size: 10px;
+        order: 21;
+    }
+
+    .std-ctrl-btn,
+    .hmm-ctrl-btn {
+        width: 28px;
+        height: 28px;
+        font-size: 12px;
+    }
+
+    .std-speed-select,
+    .hmm-speed-select {
+        font-size: 11px;
+        padding: 2px 4px;
+    }
+
+    .std-inspector table,
+    .hmm-inspector table {
+        font-size: 9px;
+    }
+
+    .std-inspector th,
+    .std-inspector td,
+    .hmm-inspector th,
+    .hmm-inspector td {
+        padding: 2px 4px;
     }
 }

@@ -1,18 +1,32 @@
 /**
- * hmm_diagram.js — Interactive Animated HMM State Transition Diagram
- * ===================================================================
+ * state_diagram.js — Interactive Animated State Transition Diagram
+ * ================================================================
+ * Standalone, reusable library for rendering state transition diagrams.
+ *
  * Compact 3-tier layout:  π (Start) → Hidden States → Observations
  *
- * Fixes applied:
- *   • Compact vertical layout (no huge gaps)
- *   • Bold, visible arrows (higher opacity & stroke-width)
+ * Features:
+ *   • Configurable colours, fonts, and layout via config object
+ *   • Compact vertical layout
+ *   • Bold, visible arrows
  *   • Wide-separated bidirectional arcs (no overlap)
  *   • Self-loops clearly visible on outer edges
- *   • Emission arrows are short with clear labels
+ *   • Emission arrows with clear labels
  *   • Particle flow animation, replay, inspector
+ *
+ * Usage:
+ *   const diagram = new StateTransitionDiagram('#container', '#inspector', config);
+ *   diagram.feedIteration({ A, B, pi, iteration, log_likelihood });
+ *
+ * @requires d3.js v7+
+ * @license MIT
  */
 
-const STATE_COLORS = [
+/* ══════════════════════════════════════════════════════════════════
+ *  DEFAULT CONFIGURATION
+ * ══════════════════════════════════════════════════════════════════ */
+
+const STD_DEFAULT_STATE_COLORS = [
     { base: '#F59E0B', light: '#FDE68A', dark: '#92400E', grad: ['#FBBF24', '#D97706'] },
     { base: '#3B82F6', light: '#93C5FD', dark: '#1E3A8A', grad: ['#60A5FA', '#2563EB'] },
     { base: '#10B981', light: '#6EE7B7', dark: '#064E3B', grad: ['#34D399', '#059669'] },
@@ -26,16 +40,39 @@ const STATE_COLORS = [
     { base: '#84CC16', light: '#BEF264', dark: '#3F6212', grad: ['#A3E635', '#65A30D'] },
     { base: '#E879F9', light: '#F0ABFC', dark: '#701A75', grad: ['#D946EF', '#C026D3'] },
 ];
-const OBS_COLOR = { fill: '#F1F5F9', stroke: '#94A3B8', dark: '#334155' };
-const PI_COLOR = { fill: '#F5F3FF', stroke: '#8B5CF6', dark: '#5B21B6' };
+const STD_DEFAULT_OBS_COLOR  = { fill: '#F1F5F9', stroke: '#94A3B8', dark: '#334155' };
+const STD_DEFAULT_PI_COLOR   = { fill: '#F5F3FF', stroke: '#8B5CF6', dark: '#5B21B6' };
 
-class HMMDiagram {
-    constructor(containerId, inspectorId) {
+/**
+ * StateTransitionDiagram — Interactive animated state transition diagram.
+ *
+ * @param {string}  containerId   CSS selector for the diagram container element.
+ * @param {string}  inspectorId   CSS selector for the inspector panel (optional).
+ * @param {Object}  [config]      Configuration overrides.
+ * @param {Array}   [config.stateColors]      Array of {base, light, dark, grad} colour objects.
+ * @param {Object}  [config.obsColor]         {fill, stroke, dark} for observation nodes.
+ * @param {Object}  [config.piColor]          {fill, stroke, dark} for start node.
+ * @param {boolean} [config.particlesEnabled] Enable particle animation (default: true).
+ * @param {number}  [config.animationSpeed]   Playback speed multiplier (default: 1).
+ * @param {string}  [config.fontFamily]       Primary font (default: Inter, system-ui, sans-serif).
+ * @param {string}  [config.monoFontFamily]   Monospace font (default: JetBrains Mono, monospace).
+ */
+class StateTransitionDiagram {
+    constructor(containerId, inspectorId, config) {
+        // Merge user config with defaults
+        const cfg = config || {};
+        this.STATE_COLORS = cfg.stateColors || STD_DEFAULT_STATE_COLORS;
+        this.OBS_COLOR    = cfg.obsColor    || STD_DEFAULT_OBS_COLOR;
+        this.PI_COLOR     = cfg.piColor     || STD_DEFAULT_PI_COLOR;
+        this.fontFamily   = cfg.fontFamily  || "'Inter', system-ui, sans-serif";
+        this.monoFont     = cfg.monoFontFamily || "'JetBrains Mono', monospace";
+
         this.container = document.querySelector(containerId);
         this.inspectorEl = inspectorId ? document.querySelector(inspectorId) : null;
         this.history = []; this.currentIdx = -1;
-        this.isPlaying = false; this.playTimer = null; this.playSpeed = 1;
-        this.particlesOn = true; this.built = false;
+        this.isPlaying = false; this.playTimer = null; this.playSpeed = cfg.animationSpeed || 1;
+        this.particlesOn = cfg.particlesEnabled !== undefined ? cfg.particlesEnabled : true;
+        this.built = false;
         this.particles = []; this.animFrame = null;
         this.svg = null; this.N = 0; this.M = 0; this._ctrl = null;
     }
@@ -67,11 +104,80 @@ class HMMDiagram {
         this._updateControls();
     }
 
+    /* ═══════ SAVE / DOWNLOAD ═══════ */
+
+    /**
+     * Save the current diagram as an SVG file.
+     * @param {string} [filename='state_transition_diagram.svg']
+     */
+    saveSVG(filename) {
+        if (!this.svg) return;
+        const svgNode = this.svg.node();
+        const serializer = new XMLSerializer();
+        let svgString = serializer.serializeToString(svgNode);
+        if (!svgString.includes('xmlns="http://www.w3.org/2000/svg"')) {
+            svgString = svgString.replace('<svg', '<svg xmlns="http://www.w3.org/2000/svg"');
+        }
+        const blob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename || 'state_transition_diagram.svg';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    }
+
+    /**
+     * Save the current diagram as a PNG file.
+     * @param {string} [filename='state_transition_diagram.png']
+     * @param {number} [scale=2] - Resolution multiplier (2 = retina).
+     */
+    savePNG(filename, scale) {
+        if (!this.svg) return;
+        scale = scale || 2;
+        const svgNode = this.svg.node();
+        const w = +svgNode.getAttribute('width');
+        const h = +svgNode.getAttribute('height');
+        const serializer = new XMLSerializer();
+        let svgString = serializer.serializeToString(svgNode);
+        if (!svgString.includes('xmlns="http://www.w3.org/2000/svg"')) {
+            svgString = svgString.replace('<svg', '<svg xmlns="http://www.w3.org/2000/svg"');
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = w * scale;
+        canvas.height = h * scale;
+        const ctx = canvas.getContext('2d');
+        const img = new Image();
+        const blob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        img.onload = function () {
+            ctx.fillStyle = '#FAFBFC';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+            URL.revokeObjectURL(url);
+            canvas.toBlob(function (pngBlob) {
+                const a = document.createElement('a');
+                a.href = URL.createObjectURL(pngBlob);
+                a.download = filename || 'state_transition_diagram.png';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(a.href);
+            }, 'image/png');
+        };
+        img.src = url;
+    }
+
     /* ═══════ BUILD ═══════ */
     _build(A, B, pi) {
         this.container.innerHTML = '';
         this.N = A.length; this.M = B[0].length;
         const N = this.N, M = this.M;
+        const STATE_COLORS = this.STATE_COLORS;
+        const OBS_COLOR = this.OBS_COLOR;
+        const PI_COLOR = this.PI_COLOR;
 
         // ── Dynamic sizing based on state/observation count ──
         const minNodeSpacing = 110;
@@ -91,7 +197,8 @@ class HMMDiagram {
         const maxDist = (N - 1) * stateGapIdeal;
         const maxArcH = Math.min(120, 30 + Math.sqrt(maxDist) * 4);
         const neededH_top = 50 + 18 + maxArcH + R + 60;
-        const neededH_bottom = R + 20 + 140;
+        const emissionGap = 140 + Math.max(0, N - 2) * 25;
+        const neededH_bottom = R + 20 + emissionGap;
         const H = Math.max(420, neededH_top + R * 2 + neededH_bottom);
 
         // Apply dynamic height to container
@@ -100,7 +207,7 @@ class HMMDiagram {
         this.svg = d3.select(this.container).append('svg')
             .attr('width', W).attr('height', H)
             .attr('viewBox', `0 0 ${W} ${H}`)
-            .style('font-family', "'Inter', system-ui, sans-serif");
+            .style('font-family', this.fontFamily);
         const defs = this.svg.append('defs');
 
         // Gradients
@@ -152,30 +259,22 @@ class HMMDiagram {
         const obsX0 = (W - (M - 1) * obsGap) / 2;
         const obsW = Math.max(50, 80 - Math.max(0, M - 4) * 5);
         const obsH = Math.max(30, 40 - Math.max(0, M - 6) * 2);
-        const obsY = Math.max(stateY + R + 140, H * 0.82);
+        const obsY = Math.max(stateY + R + emissionGap, H * 0.82);
         this._op = [];
         for (let k = 0; k < M; k++) this._op.push({ x: obsX0 + k * obsGap, y: obsY });
 
         /* ── Layers (Z-ordered groups for 3D) ── */
-        // Order in DOM determines 2D stacking (painters alg).
-        // 3D Transforms will override Z-position visually in 3D mode.
-
-        // Bottom (Emissions & Obs)
         this._gLayer4 = this.svg.append('g').attr('class', 'layer-4');
-        // Middle (States)
         this._gLayer3 = this.svg.append('g').attr('class', 'layer-3');
-        // Upper Middle (Transitions)
         this._gLayer2 = this.svg.append('g').attr('class', 'layer-2');
-        // Top (Start)
         this._gLayer1 = this.svg.append('g').attr('class', 'layer-1');
 
-        // Assign roles
-        this._emG = this._gLayer4; // Emissions
-        this._obsG = this._gLayer4; // Observation Nodes
-        this._stateG = this._gLayer3; // State Nodes
-        this._edG = this._gLayer2; // Transitions
-        this._ptG = this._gLayer2; // Particles (flow with transitions)
-        this._piG = this._gLayer1; // Pi Arrows & Start Node
+        this._emG = this._gLayer4;
+        this._obsG = this._gLayer4;
+        this._stateG = this._gLayer3;
+        this._edG = this._gLayer2;
+        this._ptG = this._gLayer2;
+        this._piG = this._gLayer1;
 
         /* ── Labels ── */
         const lblSize = N > 8 ? '8px' : '10px';
@@ -211,9 +310,11 @@ class HMMDiagram {
             const lx = sx * 0.25 + mx * 0.5 + ex * 0.25, ly = sy * 0.25 + my * 0.5 + ey * 0.25 - 4;
             const label = this._piG.append('text').attr('x', lx).attr('y', ly)
                 .attr('text-anchor', 'middle').attr('font-size', piFontSize)
-                .attr('font-family', "'JetBrains Mono',monospace").attr('font-weight', '600')
+                .attr('font-family', this.monoFont).attr('font-weight', '600')
                 .attr('fill', PI_COLOR.dark).text(`π=${pi[i].toFixed(2)}`);
             this._piA.push({ path, label });
+            path.on('mouseover', (ev) => this._showTip(ev, `π[${i}]`))
+                .on('mouseout', () => this._hideTip());
         }
 
         /* ══════ OBSERVATION NODES (Layer 4) ══════ */
@@ -258,10 +359,12 @@ class HMMDiagram {
 
                 const label = this._emG.append('text').attr('x', lx).attr('y', ly)
                     .attr('text-anchor', 'middle').attr('font-size', emFontSize)
-                    .attr('font-family', "'JetBrains Mono',monospace").attr('font-weight', '600')
+                    .attr('font-family', this.monoFont).attr('font-weight', '600')
                     .attr('fill', col.dark).attr('opacity', 0).text('');
 
                 this._emR[`em-${i}-${k}`] = { path, label, sx, sy, c1x, c1y, c2x, c2y, ex, ey };
+                path.on('mouseover', (ev) => this._showTip(ev, `B[${i}][${k}]`))
+                    .on('mouseout', () => this._hideTip());
             }
         }
 
@@ -299,35 +402,24 @@ class HMMDiagram {
                     this._slR[key] = { path, label };
 
                 } else {
-                    // Inter-state arc (ABOVE)
+                    // Inter-state arc — forward (above) & reverse (below)
                     const src = this._sp[i], tgt = this._sp[j];
                     const dist = Math.abs(tgt.x - src.x);
-
-                    // Arc Height: sqrt scaling, capped to prevent excessive height
                     const arcH = Math.min(120, 30 + Math.sqrt(dist) * 4);
-
                     const midX = (src.x + tgt.x) / 2;
-                    const topY = Math.min(src.y, tgt.y) - R - arcH;
 
-                    // Control Points
-                    // M(src) Q(midX, topY) (tgt)
-                    // Start/End at Top of circle? Or side?
-                    // Side gives better separation.
-                    // If i < j (Right): Start Top-Right, End Top-Left
-                    // If i > j (Left): Start Top-Left, End Top-Right
-
-                    let sx, sy, ex, ey;
+                    let sx, sy, ex, ey, cx, cy;
                     if (i < j) {
                         sx = src.x + R * 0.5; sy = src.y - R * 0.8;
                         ex = tgt.x - R * 0.5; ey = tgt.y - R * 0.8;
+                        cx = midX;
+                        cy = Math.min(src.y, tgt.y) - R - arcH;
                     } else {
-                        sx = src.x - R * 0.5; sy = src.y - R * 0.8;
-                        ex = tgt.x + R * 0.5; ey = tgt.y - R * 0.8;
+                        sx = src.x - R * 0.5; sy = src.y + R * 0.8;
+                        ex = tgt.x + R * 0.5; ey = tgt.y + R * 0.8;
+                        cx = midX;
+                        cy = Math.max(src.y, tgt.y) + R + arcH * 0.45;
                     }
-
-                    // Quadratic Bezier for Arc
-                    // Control point is MidX, TopY
-                    const cx = midX, cy = topY;
 
                     const d = `M${sx},${sy} Q${cx},${cy} ${ex},${ey}`;
 
@@ -337,9 +429,9 @@ class HMMDiagram {
                         .attr('stroke-width', trStroke).attr('opacity', 0.35)
                         .attr('marker-end', `url(#ah${i})`);
 
-                    // Label at peak (t=0.5)
                     const lx = 0.25 * sx + 0.5 * cx + 0.25 * ex;
-                    const ly = 0.25 * sy + 0.5 * cy + 0.25 * ey - 5;
+                    const lyOff = i < j ? -5 : 5;
+                    const ly = 0.25 * sy + 0.5 * cy + 0.25 * ey + lyOff;
 
                     const trFontSize = N > 8 ? '8px' : N > 5 ? '9px' : '11px';
                     const bgW = N > 8 ? 24 : 30;
@@ -352,7 +444,7 @@ class HMMDiagram {
                     const label = this._edG.append('text').attr('x', lx).attr('y', ly)
                         .attr('text-anchor', 'middle').attr('dominant-baseline', 'central')
                         .attr('font-size', trFontSize).attr('font-weight', '700')
-                        .attr('font-family', "'JetBrains Mono',monospace")
+                        .attr('font-family', this.monoFont)
                         .attr('fill', col.dark).attr('opacity', 0).text('');
 
                     this._trR[key] = { path, label, bg, sx, sy, cx, cy, ex, ey };
@@ -387,7 +479,7 @@ class HMMDiagram {
             .style('position', 'absolute').style('display', 'none')
             .style('background', 'rgba(15,23,42,0.9)').style('color', '#f1f5f9')
             .style('padding', '3px 8px').style('border-radius', '5px')
-            .style('font-family', 'JetBrains Mono,monospace').style('font-size', '10px')
+            .style('font-family', this.monoFont).style('font-size', '10px')
             .style('pointer-events', 'none').style('z-index', '50');
 
         this._startParticleLoop();
@@ -402,7 +494,7 @@ class HMMDiagram {
         // π
         for (let i = 0; i < N; i++) {
             const r = this._piA[i], v = pi[i];
-            r.path.transition().duration(180).attr('stroke-width', 2.5 + v * 4).attr('opacity', Math.max(0.25, 0.2 + v * 0.7));
+            r.path.transition().duration(180).attr('stroke-width', 1.5 + v * 5).attr('opacity', Math.max(0.25, 0.2 + v * 0.7));
             r.label.text(`π=${v.toFixed(2)}`).attr('font-size', '12px').attr('font-weight', '800');
         }
 
@@ -412,21 +504,19 @@ class HMMDiagram {
             if (i === j) {
                 const r = this._slR[k]; if (!r) continue;
                 r.path.transition().duration(180)
-                    .attr('stroke-width', 2.0 + v * 4)
+                    .attr('stroke-width', 1 + v * 6)
                     .attr('opacity', Math.max(0.12, 0.10 + v * 0.8));
                 r.label.text(v.toFixed(2));
             } else {
                 const r = this._trR[k]; if (!r) continue;
-                // Always show, just vary intensity
                 const opacity = Math.max(0.25, 0.2 + v * 0.7);
                 r.path.transition().duration(180)
-                    .attr('stroke-width', 2.0 + v * 4) // Thicker
+                    .attr('stroke-width', 1 + v * 6)
                     .attr('opacity', opacity);
 
-                // Only show label if v > 0.005
                 const showLbl = v > 0.005;
                 r.label.text(v.toFixed(2)).attr('opacity', showLbl ? 1 : 0)
-                    .attr('font-size', '11px').attr('font-weight', '700'); // Bigger font
+                    .attr('font-size', '11px').attr('font-weight', '700');
                 r.bg.attr('opacity', showLbl ? 1 : 0);
             }
         }
@@ -434,18 +524,15 @@ class HMMDiagram {
         // Emissions — visible
         for (let i = 0; i < N; i++) for (let k = 0; k < M; k++) {
             const v = B[i][k], r = this._emR[`em-${i}-${k}`]; if (!r) continue;
-            // Always show faint
             const opacity = Math.max(0.4, 0.4 + v * 0.6);
             r.path.transition().duration(180)
-                .attr('stroke-width', 2.0 + v * 3) // Thicker
+                .attr('stroke-width', 1 + v * 5)
                 .attr('opacity', opacity);
 
             const showLbl = v > 0.03;
             r.label.text(showLbl ? v.toFixed(2) : '').attr('opacity', showLbl ? 1 : 0)
                 .attr('font-size', '11px').attr('font-weight', '700');
         }
-
-
 
         this._rebuildParticles(A);
         if (this.inspectorEl?.classList.contains('visible')) this._renderInspector(idx);
@@ -454,6 +541,7 @@ class HMMDiagram {
     /* ═══════ PARTICLES ═══════ */
     _rebuildParticles(A) {
         this._clearParticles(); if (!this.particlesOn) return;
+        const STATE_COLORS = this.STATE_COLORS;
         for (let i = 0; i < this.N; i++) for (let j = 0; j < this.N; j++) {
             if (i === j) continue; const v = A[i][j]; if (v < 0.02) continue;
             const r = this._trR[`${i}-${j}`]; if (!r) continue;
@@ -475,31 +563,23 @@ class HMMDiagram {
             for (const p of this.particles) {
                 p.t += p.speed; if (p.t > 1) p.t -= 1;
                 const t = p.t, m = 1 - t, m2 = m * m, m3 = m2 * m, t2 = t * t, t3 = t2 * t;
-                // Cubic Bezier: B(t) = (1-t)^3 P0 + 3(1-t)^2 t P1 + 3(1-t) t^2 P2 + t^3 P3
                 const r = p.ref;
-                // Transition: Quadratic (Q)
                 if (r.cx !== undefined) {
                     const x = m2 * r.sx + 2 * m * t * r.cx + t2 * r.ex;
                     const y = m2 * r.sy + 2 * m * t * r.cy + t2 * r.ey;
                     p.el.attr('cx', x).attr('cy', y);
                 } else if (r.p2x !== undefined) {
-                    // Emission: Bus Routing (Line Segments)
-                    // P1->P2 (Drop) -> P3 (Target)
-                    // Distribute t across segments? 
-                    // Let's approximate simply for now or use linear interpolation
-                    // Simple: t < 0.3 -> Drop. t >= 0.3 -> Diagonal.
                     let x, y;
-                    if (t < 0.3) { // Vertical drop
+                    if (t < 0.3) {
                         const st = t / 0.3;
                         x = r.p1x; y = r.p1y + (r.p2y - r.p1y) * st;
-                    } else { // Diagonal
+                    } else {
                         const st = (t - 0.3) / 0.7;
                         x = r.p2x + (r.p3x - r.p2x) * st;
                         y = r.p2y + (r.p3y - r.p2y) * st;
                     }
                     p.el.attr('cx', x).attr('cy', y);
                 } else {
-                    // Start/Self: Cubic (C)
                     const x = m3 * r.sx + 3 * m2 * t * r.c1x + 3 * m * t2 * r.c2x + t3 * r.ex;
                     const y = m3 * r.sy + 3 * m2 * t * r.c1y + 3 * m * t2 * r.c2y + t3 * r.ey;
                     p.el.attr('cx', x).attr('cy', y);
@@ -523,6 +603,7 @@ class HMMDiagram {
     _renderInspector(ii, hl) {
         if (!this.inspectorEl) return; const d = this.history[ii]; if (!d) return;
         const N = d.A.length, M = d.B[0].length;
+        const STATE_COLORS = this.STATE_COLORS;
         let h = `<h4>Iteration ${d.iteration} &nbsp;|&nbsp; LL = ${d.log_likelihood.toFixed(4)}</h4>`;
         h += `<div style="margin-bottom:6px"><strong>π:</strong> [${d.pi.map((v, i) =>
             `<span style="color:${STATE_COLORS[i % STATE_COLORS.length].dark}">${v.toFixed(4)}</span>`).join(', ')}]</div>`;
@@ -546,7 +627,15 @@ class HMMDiagram {
     /* ═══════ TOOLTIP ═══════ */
     _showTip(ev, txt) {
         if (!this._tip) return; let f = txt;
-        if (this.currentIdx >= 0) { const m = txt.match(/A\[(\d+)\]\[(\d+)\]/); if (m) f = `${txt} = ${this.history[this.currentIdx].A[+m[1]][+m[2]].toFixed(6)}`; }
+        if (this.currentIdx >= 0) {
+            const d = this.history[this.currentIdx];
+            const mA = txt.match(/^A\[(\d+)\]\[(\d+)\]$/);
+            const mB = txt.match(/^B\[(\d+)\]\[(\d+)\]$/);
+            const mPi = txt.match(/^π\[(\d+)\]$/);
+            if (mA) f = `${txt} = ${d.A[+mA[1]][+mA[2]].toFixed(6)}`;
+            else if (mB) f = `${txt} = ${d.B[+mB[1]][+mB[2]].toFixed(6)}`;
+            else if (mPi) f = `${txt} = ${d.pi[+mPi[1]].toFixed(6)}`;
+        }
         const r = this.container.getBoundingClientRect();
         this._tip.style('display', 'block').text(f).style('left', (ev.clientX - r.left + 10) + 'px').style('top', (ev.clientY - r.top - 22) + 'px');
     }
@@ -591,4 +680,15 @@ class HMMDiagram {
         if (c.iterLabel) c.iterLabel.textContent = l > 0 ? `Step ${i + 1} / ${l}` : 'No data';
     }
 }
-window.HMMDiagram = HMMDiagram;
+
+/* ── Backward-compatibility alias ── */
+const HMMDiagram = StateTransitionDiagram;
+
+/* ── Export ── */
+if (typeof window !== 'undefined') {
+    window.StateTransitionDiagram = StateTransitionDiagram;
+    window.HMMDiagram = HMMDiagram;
+}
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = { StateTransitionDiagram, HMMDiagram };
+}

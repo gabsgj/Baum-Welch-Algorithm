@@ -38,14 +38,10 @@
         }
     </script>
 
-    <!-- D3.js -->
-    <script src="https://d3js.org/d3.v7.min.js"></script>
-    <!-- Plotly.js -->
-    <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
-    <!-- Socket.IO -->
-    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
-    <!-- HMM Diagram -->
-    <link rel="stylesheet" href="/static/css/hmm_diagram.css">
+    <!-- D3.js, Plotly, Socket.IO loaded before closing </body> -->
+
+    <!-- State Transition Diagram (from state_transition_diagrams library) -->
+    <link rel="stylesheet" href="/std/css/state_diagram.css">
 
     <style>
         body {
@@ -87,7 +83,7 @@
             font-size: 0.8rem;
         }
 
-        /* ── (HMM Diagram styles in /static/css/hmm_diagram.css) ── */
+        /* ── (State diagram styles loaded from /std/css/state_diagram.css) ── */
 
         .pi-bar {
             transition: width 0.3s ease;
@@ -164,6 +160,76 @@
             background: #d1d0cc;
             border-radius: 3px;
         }
+
+        /* ── Mobile responsive ── */
+        @media (max-width: 640px) {
+            header .max-w-7xl {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 0.5rem;
+                padding-top: 0.75rem;
+                padding-bottom: 0.75rem;
+            }
+
+            header h1 {
+                font-size: 1rem;
+            }
+
+            main {
+                padding-left: 1rem;
+                padding-right: 1rem;
+                padding-top: 1.25rem;
+            }
+
+            main > section {
+                margin-bottom: 1.5rem;
+            }
+
+            .card {
+                padding: 0.75rem;
+            }
+
+            #ll-chart,
+            #prob-chart,
+            #error-chart,
+            #comp-chart,
+            #evolution-chart {
+                height: 240px !important;
+            }
+
+            .heatmap-cell {
+                font-size: 0.65rem;
+            }
+
+            .iter-table {
+                font-size: 0.6rem;
+            }
+
+            .iter-table td,
+            .iter-table th {
+                padding: 4px 6px;
+            }
+
+            @keyframes fadeIn {
+                from { opacity: 0; transform: translateY(-4px); }
+                to { opacity: 1; transform: translateY(0); }
+            }
+
+            .animate-fadeIn {
+                animation: fadeIn 0.25s ease-out;
+            }
+        }
+
+        @media (min-width: 641px) {
+            @keyframes fadeIn {
+                from { opacity: 0; transform: translateY(-4px); }
+                to { opacity: 1; transform: translateY(0); }
+            }
+
+            .animate-fadeIn {
+                animation: fadeIn 0.25s ease-out;
+            }
+        }
     </style>
 </head>
 
@@ -231,44 +297,39 @@
                             DNA Preset</button>
                     </div>
 
-                    <!-- Advanced Settings -->
-                    <div class="pt-3 pb-1 border-gray-100">
-                        <details class="group">
-                            <summary
-                                class="flex items-center gap-2 cursor-pointer list-none text-xs font-semibold text-slate-500 hover:text-slate-700 transition select-none">
-                                <svg class="w-3 h-3 transition group-open:rotate-90 text-slate-400" fill="none"
-                                    viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                    <path d="M9 5l7 7-7 7"></path>
-                                </svg>
-                                <span>Advanced Initialization</span>
-                            </summary>
-                            <div
-                                class="mt-2 space-y-3 p-3 bg-slate-50 rounded border border-slate-100 text-xs text-academic-muted">
-                                <div>
-                                    <label class="block font-medium mb-1 text-slate-700">Transition Matrix A
-                                        (JSON)</label>
-                                    <textarea id="init-a" rows="3"
-                                        class="w-full font-mono border-gray-300 rounded focus:ring-sapphire-500 focus:border-sapphire-500 text-xs"
-                                        placeholder="[[0.7, 0.3], [0.4, 0.6]]" spellcheck="false"></textarea>
-                                </div>
-                                <div>
-                                    <label class="block font-medium mb-1 text-slate-700">Emission Matrix B
-                                        (JSON)</label>
-                                    <textarea id="init-b" rows="3"
-                                        class="w-full font-mono border-gray-300 rounded focus:ring-sapphire-500 focus:border-sapphire-500 text-xs"
-                                        placeholder="[[0.9, 0.1], [0.2, 0.8]]" spellcheck="false"></textarea>
-                                </div>
-                                <div>
-                                    <label class="block font-medium mb-1 text-slate-700">Initial Probabilities &pi;
-                                        (JSON)</label>
-                                    <input type="text" id="init-pi"
-                                        class="w-full font-mono border-gray-300 rounded focus:ring-sapphire-500 focus:border-sapphire-500 text-xs h-8"
-                                        placeholder="[0.6, 0.4]" spellcheck="false">
-                                </div>
-                                <p class="text-amber-600 italic text-[10px]">* Leave empty for random initialization.
-                                    Metrics validation is performed on server.</p>
+                    <!-- Advanced Initialization Toggle -->
+                    <div class="pt-3 pb-1">
+                        <div class="flex items-center gap-3">
+                            <button type="button" id="toggle-advanced"
+                                class="relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent bg-slate-200 transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-sapphire-400 focus:ring-offset-2"
+                                role="switch" aria-checked="false">
+                                <span id="toggle-knob" class="pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out translate-x-0"></span>
+                            </button>
+                            <span class="text-sm font-medium text-slate-700">Advanced Initialization</span>
+                            <span id="init-mode-label" class="text-xs text-slate-400 italic ml-1">Using random initialization</span>
+                        </div>
+                        <div id="advanced-init-panel"
+                            class="hidden mt-3 space-y-3 p-3 bg-slate-50 rounded border border-slate-100 text-xs text-academic-muted animate-fadeIn">
+                            <div>
+                                <label class="block font-medium mb-1 text-slate-700">Transition Matrix A (JSON)</label>
+                                <textarea id="init-a" rows="3"
+                                    class="w-full font-mono border-gray-300 rounded focus:ring-sapphire-500 focus:border-sapphire-500 text-xs"
+                                    placeholder='[[0.7, 0.3], [0.4, 0.6]]' spellcheck="false"></textarea>
                             </div>
-                        </details>
+                            <div>
+                                <label class="block font-medium mb-1 text-slate-700">Emission Matrix B (JSON)</label>
+                                <textarea id="init-b" rows="3"
+                                    class="w-full font-mono border-gray-300 rounded focus:ring-sapphire-500 focus:border-sapphire-500 text-xs"
+                                    placeholder='[[0.9, 0.1], [0.2, 0.8]]' spellcheck="false"></textarea>
+                            </div>
+                            <div>
+                                <label class="block font-medium mb-1 text-slate-700">Initial Probabilities &pi; (JSON)</label>
+                                <input type="text" id="init-pi"
+                                    class="w-full font-mono border-gray-300 rounded focus:ring-sapphire-500 focus:border-sapphire-500 text-xs h-8"
+                                    placeholder='[0.6, 0.4]' spellcheck="false">
+                            </div>
+                            <p class="text-amber-600 italic text-[10px]">* Provide custom A, B, &pi; matrices in JSON format. Leave individual fields empty for random initialization of that parameter.</p>
+                        </div>
                     </div>
 
                     <div class="pt-2">
@@ -337,7 +398,7 @@
 
         <!-- ══════════════ 4d. COMPLEMENT CHART (1 - P) ══════════════ -->
         <section id="comp-section" class="hidden">
-            <p class="section-title mb-3">Probability Complement (1 - P) vs Model Version</p>
+            <p class="section-title mb-3">Probability Complement &mdash; 1 &minus; P(O|&lambda;)<sup>1/T</sup> vs Model Version</p>
             <div class="card p-5">
                 <div id="comp-chart" style="width:100%; height:320px;"></div>
             </div>
@@ -346,7 +407,7 @@
         <!-- ══════════════ 5. STATE DIAGRAM ══════════════ -->
         <section id="diagram-section" class="hidden">
             <p class="section-title mb-3">HMM State Transition Diagram</p>
-            <div class="card p-6">
+            <div class="card p-6" id="diagram-card">
                 <!-- Diagram Canvas -->
                 <div id="state-diagram-container" class="hmm-canvas"></div>
 
@@ -368,6 +429,8 @@
                         title="Iteration Timeline">
                     <span id="hmm-iter-label" class="hmm-iter-label">No data</span>
                     <button id="hmm-particles" class="hmm-ctrl-btn active" title="Toggle Particles">✦</button>
+                    <button id="hmm-fullscreen" class="hmm-ctrl-btn" title="Fullscreen"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg></button>
+                    <button id="hmm-save" class="hmm-ctrl-btn" title="Save Diagram as PNG"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></button>
                 </div>
 
                 <!-- Inspector Panel -->
@@ -449,52 +512,303 @@
 
         <!-- ══════════════ 12. ALGORITHM EXPLANATION ══════════════ -->
         <section>
-            <p class="section-title mb-3">Algorithm Reference</p>
-            <div class="card p-6">
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-8 text-sm text-slate-700 leading-relaxed">
-                    <div>
-                        <h3 class="font-semibold text-slate-900 mb-2">Hidden Markov Model</h3>
-                        <p class="mb-3">An HMM is defined by <span class="font-mono-num text-sapphire-700">&lambda; =
-                                (A, B, &pi;)</span> where
-                            <strong>A</strong> is the state transition matrix,
-                            <strong>B</strong> is the observation emission matrix, and
-                            <strong>&pi;</strong> is the initial state distribution.
-                        </p>
-                        <h3 class="font-semibold text-slate-900 mb-2">Baum&ndash;Welch Algorithm</h3>
-                        <p>An EM procedure that iteratively re-estimates the HMM parameters to maximize
-                            <span class="font-mono-num text-sapphire-700">P(O|&lambda;)</span>.
-                            Each iteration is guaranteed to increase (or maintain) the log-likelihood.
-                        </p>
+            <p class="section-title mb-3">HMM Theory &amp; Algorithm Reference</p>
+            <div class="card p-6 space-y-8 text-sm text-slate-700 leading-relaxed">
+
+                <!-- 12a. Formal Definition -->
+                <div>
+                    <h3 class="font-semibold text-slate-900 mb-2 text-base">1. Hidden Markov Model &mdash; Formal Definition</h3>
+                    <p class="mb-3">
+                        A Hidden Markov Model (HMM) is a probabilistic generative model for sequential data.
+                        The system is assumed to follow a Markov chain of <em>hidden</em> (unobservable) states,
+                        each of which emits an <em>observable</em> symbol according to a state-dependent probability distribution.
+                    </p>
+                    <p class="mb-3">
+                        An HMM is fully specified by the parameter tuple
+                        <span class="font-mono-num text-sapphire-700 font-semibold">&lambda; = (A, B, &pi;)</span>, where:
+                    </p>
+                    <div class="overflow-x-auto">
+                        <table class="text-xs border border-slate-200 rounded w-full mb-3">
+                            <thead class="bg-slate-50">
+                                <tr>
+                                    <th class="px-4 py-2 text-left font-semibold text-slate-800 border-b border-slate-200">Symbol</th>
+                                    <th class="px-4 py-2 text-left font-semibold text-slate-800 border-b border-slate-200">Name</th>
+                                    <th class="px-4 py-2 text-left font-semibold text-slate-800 border-b border-slate-200">Definition</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr class="border-b border-slate-100">
+                                    <td class="px-4 py-2 font-mono-num text-sapphire-700 font-semibold">A</td>
+                                    <td class="px-4 py-2">State Transition Matrix</td>
+                                    <td class="px-4 py-2">A[i][j] = P(q<sub>t+1</sub> = S<sub>j</sub> | q<sub>t</sub> = S<sub>i</sub>). Each row sums to 1.</td>
+                                </tr>
+                                <tr class="border-b border-slate-100">
+                                    <td class="px-4 py-2 font-mono-num text-sapphire-700 font-semibold">B</td>
+                                    <td class="px-4 py-2">Emission (Observation) Matrix</td>
+                                    <td class="px-4 py-2">B[j][k] = P(O<sub>t</sub> = v<sub>k</sub> | q<sub>t</sub> = S<sub>j</sub>). Each row sums to 1.</td>
+                                </tr>
+                                <tr>
+                                    <td class="px-4 py-2 font-mono-num text-sapphire-700 font-semibold">&pi;</td>
+                                    <td class="px-4 py-2">Initial State Distribution</td>
+                                    <td class="px-4 py-2">&pi;[i] = P(q<sub>1</sub> = S<sub>i</sub>). Elements sum to 1.</td>
+                                </tr>
+                            </tbody>
+                        </table>
                     </div>
-                    <div>
-                        <h3 class="font-semibold text-slate-900 mb-2">E-Step</h3>
-                        <ul class="list-disc list-inside space-y-1 mb-3 text-slate-600">
-                            <li>Compute <span class="font-mono-num">&alpha;</span> (forward variables)</li>
-                            <li>Compute <span class="font-mono-num">&beta;</span> (backward variables)</li>
-                            <li>Compute <span class="font-mono-num">&gamma;<sub>t</sub>(i)</span> =
-                                P(q<sub>t</sub>=S<sub>i</sub> | O, &lambda;)</li>
-                            <li>Compute <span class="font-mono-num">&xi;<sub>t</sub>(i,j)</span> =
-                                P(q<sub>t</sub>=S<sub>i</sub>, q<sub>t+1</sub>=S<sub>j</sub> | O, &lambda;)</li>
-                        </ul>
-                        <h3 class="font-semibold text-slate-900 mb-2">M-Step</h3>
-                        <ul class="list-disc list-inside space-y-1 text-slate-600">
-                            <li>Update <span class="font-mono-num">A[i][j]</span> = &Sigma;&xi; / &Sigma;&gamma;</li>
-                            <li>Update <span class="font-mono-num">B[j][k]</span> = &Sigma;&gamma;(O<sub>t</sub>=k) /
-                                &Sigma;&gamma;</li>
-                            <li>Update <span class="font-mono-num">&pi;[i]</span> = &gamma;<sub>1</sub>(i)</li>
-                        </ul>
+                    <p class="text-xs text-academic-muted italic">
+                        The model assumes the <strong>Markov property</strong>: the probability of transitioning to
+                        state S<sub>j</sub> depends only on the current state S<sub>i</sub>, not on the history of states.
+                        It also assumes <strong>output independence</strong>: the observation at time <em>t</em> depends
+                        only on the current state at time <em>t</em>.
+                    </p>
+                </div>
+
+                <hr class="border-slate-100">
+
+                <!-- 12b. Three Fundamental Problems -->
+                <div>
+                    <h3 class="font-semibold text-slate-900 mb-2 text-base">2. Three Fundamental Problems of HMMs</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div class="bg-blue-50 border border-blue-100 rounded-lg p-4">
+                            <p class="font-semibold text-blue-900 mb-1 text-xs uppercase tracking-wider">Problem 1 &mdash; Evaluation</p>
+                            <p class="text-xs text-blue-800 mb-2">Given &lambda; and an observation sequence O, compute P(O|&lambda;).</p>
+                            <p class="text-xs text-blue-600 italic">Solved by the <strong>Forward Algorithm</strong>.</p>
+                        </div>
+                        <div class="bg-emerald-50 border border-emerald-100 rounded-lg p-4">
+                            <p class="font-semibold text-emerald-900 mb-1 text-xs uppercase tracking-wider">Problem 2 &mdash; Decoding</p>
+                            <p class="text-xs text-emerald-800 mb-2">Given &lambda; and O, find the most likely hidden state sequence Q*.</p>
+                            <p class="text-xs text-emerald-600 italic">Solved by the <strong>Viterbi Algorithm</strong>.</p>
+                        </div>
+                        <div class="bg-amber-50 border border-amber-100 rounded-lg p-4">
+                            <p class="font-semibold text-amber-900 mb-1 text-xs uppercase tracking-wider">Problem 3 &mdash; Learning</p>
+                            <p class="text-xs text-amber-800 mb-2">Given O, find &lambda;* = argmax<sub>&lambda;</sub> P(O|&lambda;).</p>
+                            <p class="text-xs text-amber-600 italic">Solved by the <strong>Baum&ndash;Welch Algorithm</strong> (this tool).</p>
+                        </div>
                     </div>
                 </div>
+
+                <hr class="border-slate-100">
+
+                <!-- 12c. Forward Algorithm -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <div>
+                        <h3 class="font-semibold text-slate-900 mb-2 text-base">3. Forward Algorithm</h3>
+                        <p class="mb-3">
+                            The forward variable <span class="font-mono-num text-sapphire-700">&alpha;<sub>t</sub>(i)</span>
+                            represents the probability of observing the partial sequence O<sub>1</sub>, O<sub>2</sub>, &hellip;, O<sub>t</sub>
+                            and being in state S<sub>i</sub> at time <em>t</em>.
+                        </p>
+                        <div class="bg-slate-50 rounded-lg p-3 mb-2 font-mono text-xs border border-slate-200 space-y-2">
+                            <p class="text-slate-500 italic">Initialization:</p>
+                            <p>&alpha;<sub>1</sub>(i) = &pi;<sub>i</sub> &middot; B[i][O<sub>1</sub>]</p>
+                            <p class="text-slate-500 italic mt-2">Induction (t = 2, &hellip;, T):</p>
+                            <p>&alpha;<sub>t</sub>(j) = [ &Sigma;<sub>i=1</sub><sup>N</sup> &alpha;<sub>t&minus;1</sub>(i) &middot; A[i][j] ] &middot; B[j][O<sub>t</sub>]</p>
+                            <p class="text-slate-500 italic mt-2">Termination:</p>
+                            <p>P(O|&lambda;) = &Sigma;<sub>i=1</sub><sup>N</sup> &alpha;<sub>T</sub>(i)</p>
+                        </div>
+                        <p class="text-xs text-academic-muted">Complexity: <span class="font-mono-num">O(N&sup2;T)</span> vs brute-force <span class="font-mono-num">O(N<sup>T</sup>)</span></p>
+                    </div>
+                    <div>
+                        <h3 class="font-semibold text-slate-900 mb-2 text-base">4. Backward Algorithm</h3>
+                        <p class="mb-3">
+                            The backward variable <span class="font-mono-num text-sapphire-700">&beta;<sub>t</sub>(i)</span>
+                            represents the probability of the partial observation sequence from <em>t+1</em> to <em>T</em>,
+                            given state S<sub>i</sub> at time <em>t</em>.
+                        </p>
+                        <div class="bg-slate-50 rounded-lg p-3 mb-2 font-mono text-xs border border-slate-200 space-y-2">
+                            <p class="text-slate-500 italic">Initialization:</p>
+                            <p>&beta;<sub>T</sub>(i) = 1 &nbsp; &forall; i</p>
+                            <p class="text-slate-500 italic mt-2">Induction (t = T&minus;1, &hellip;, 1):</p>
+                            <p>&beta;<sub>t</sub>(i) = &Sigma;<sub>j=1</sub><sup>N</sup> A[i][j] &middot; B[j][O<sub>t+1</sub>] &middot; &beta;<sub>t+1</sub>(j)</p>
+                        </div>
+                        <p class="text-xs text-academic-muted">Both &alpha; and &beta; are computed in the E-Step of Baum&ndash;Welch.</p>
+                    </div>
+                </div>
+
+                <hr class="border-slate-100">
+
+                <!-- 12d. Baum-Welch EM -->
+                <div>
+                    <h3 class="font-semibold text-slate-900 mb-3 text-base">5. Baum&ndash;Welch Algorithm (EM for HMMs)</h3>
+                    <p class="mb-4">
+                        The Baum&ndash;Welch algorithm is a special case of the Expectation&ndash;Maximization (EM) framework
+                        applied to HMMs. It iteratively alternates between computing the expected sufficient statistics
+                        (<strong>E-Step</strong>) and re-estimating the model parameters (<strong>M-Step</strong>).
+                    </p>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div class="bg-sapphire-50 border border-sapphire-100 rounded-lg p-4">
+                            <h4 class="font-semibold text-sapphire-900 mb-2">E-Step: Compute Responsibilities</h4>
+                            <ul class="space-y-2 text-xs text-sapphire-800">
+                                <li class="flex items-start gap-2">
+                                    <span class="text-sapphire-400 mt-0.5">&#9654;</span>
+                                    <span>Compute <span class="font-mono-num font-semibold">&alpha;<sub>t</sub>(i)</span> via the forward pass</span>
+                                </li>
+                                <li class="flex items-start gap-2">
+                                    <span class="text-sapphire-400 mt-0.5">&#9654;</span>
+                                    <span>Compute <span class="font-mono-num font-semibold">&beta;<sub>t</sub>(i)</span> via the backward pass</span>
+                                </li>
+                                <li class="flex items-start gap-2">
+                                    <span class="text-sapphire-400 mt-0.5">&#9654;</span>
+                                    <span>
+                                        <span class="font-mono-num font-semibold">&gamma;<sub>t</sub>(i)</span> =
+                                        P(q<sub>t</sub>=S<sub>i</sub> | O, &lambda;) =
+                                        <span class="font-mono-num">&alpha;<sub>t</sub>(i) &middot; &beta;<sub>t</sub>(i) / P(O|&lambda;)</span>
+                                    </span>
+                                </li>
+                                <li class="flex items-start gap-2">
+                                    <span class="text-sapphire-400 mt-0.5">&#9654;</span>
+                                    <span>
+                                        <span class="font-mono-num font-semibold">&xi;<sub>t</sub>(i,j)</span> =
+                                        P(q<sub>t</sub>=S<sub>i</sub>, q<sub>t+1</sub>=S<sub>j</sub> | O, &lambda;)
+                                    </span>
+                                </li>
+                            </ul>
+                        </div>
+                        <div class="bg-emerald-50 border border-emerald-100 rounded-lg p-4">
+                            <h4 class="font-semibold text-emerald-900 mb-2">M-Step: Re-estimate Parameters</h4>
+                            <div class="space-y-2 text-xs text-emerald-800 font-mono">
+                                <div class="flex items-start gap-2">
+                                    <span class="text-emerald-400 mt-0.5 font-sans">&#9654;</span>
+                                    <span>
+                                        <span class="font-semibold font-sans">Transition:</span>
+                                        A&#770;[i][j] = &Sigma;<sub>t=1</sub><sup>T&minus;1</sup> &xi;<sub>t</sub>(i,j)
+                                        / &Sigma;<sub>t=1</sub><sup>T&minus;1</sup> &gamma;<sub>t</sub>(i)
+                                    </span>
+                                </div>
+                                <div class="flex items-start gap-2">
+                                    <span class="text-emerald-400 mt-0.5 font-sans">&#9654;</span>
+                                    <span>
+                                        <span class="font-semibold font-sans">Emission:</span>
+                                        B&#770;[j][k] = &Sigma;<sub>t: O<sub>t</sub>=v<sub>k</sub></sub> &gamma;<sub>t</sub>(j)
+                                        / &Sigma;<sub>t=1</sub><sup>T</sup> &gamma;<sub>t</sub>(j)
+                                    </span>
+                                </div>
+                                <div class="flex items-start gap-2">
+                                    <span class="text-emerald-400 mt-0.5 font-sans">&#9654;</span>
+                                    <span>
+                                        <span class="font-semibold font-sans">Initial:</span>
+                                        &pi;&#770;[i] = &gamma;<sub>1</sub>(i)
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <hr class="border-slate-100">
+
+                <!-- 12e. Convergence & Scaling -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <div>
+                        <h3 class="font-semibold text-slate-900 mb-2 text-base">6. Convergence Guarantees</h3>
+                        <p class="mb-2">
+                            The EM framework guarantees that the log-likelihood is <strong>monotonically non-decreasing</strong>
+                            across iterations:
+                        </p>
+                        <div class="bg-slate-50 rounded-lg p-3 mb-3 font-mono text-xs border border-slate-200 text-center">
+                            log P(O|&lambda;<sup>(n+1)</sup>) &ge; log P(O|&lambda;<sup>(n)</sup>)
+                        </div>
+                        <p class="text-xs text-academic-muted mb-2">
+                            Convergence is to a <em>local</em> maximum (or saddle point) of the likelihood surface.
+                            The algorithm terminates when
+                            <span class="font-mono-num">|&Delta; log L| &lt; &epsilon;</span> (the user-specified tolerance)
+                            or when the maximum iteration count is reached.
+                        </p>
+                        <p class="text-xs text-academic-muted">
+                            In practice, multiple random restarts are recommended to mitigate sensitivity to initialization.
+                        </p>
+                    </div>
+                    <div>
+                        <h3 class="font-semibold text-slate-900 mb-2 text-base">7. Numerical Stability &mdash; Scaling</h3>
+                        <p class="mb-2">
+                            For long observation sequences, the forward and backward variables can underflow to zero.
+                            This implementation uses <strong>log-space scaling</strong> (Rabiner, 1989):
+                        </p>
+                        <ul class="list-disc list-inside space-y-1 text-xs text-slate-600 mb-3">
+                            <li>At each time step <em>t</em>, compute a scaling coefficient <span class="font-mono-num">c<sub>t</sub></span></li>
+                            <li><span class="font-mono-num">c<sub>t</sub> = 1 / &Sigma;<sub>i</sub> &alpha;&#771;<sub>t</sub>(i)</span>, applied to normalize &alpha;</li>
+                            <li>The same coefficients are used to scale &beta;</li>
+                            <li>Log-likelihood recovered as <span class="font-mono-num">log P(O|&lambda;) = &minus;&Sigma;<sub>t</sub> log c<sub>t</sub></span></li>
+                        </ul>
+                        <p class="text-xs text-academic-muted">
+                            This avoids floating-point underflow while preserving exact computation of &gamma; and &xi;.
+                        </p>
+                    </div>
+                </div>
+
+                <hr class="border-slate-100">
+
+                <!-- 12f. Applications -->
+                <div>
+                    <h3 class="font-semibold text-slate-900 mb-2 text-base">8. Applications</h3>
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+                        <div class="text-center p-3 bg-slate-50 rounded-lg border border-slate-100">
+                            <p class="text-lg mb-1">🧬</p>
+                            <p class="text-xs font-medium text-slate-700">Bioinformatics</p>
+                            <p class="text-[10px] text-academic-muted">Gene finding, protein families</p>
+                        </div>
+                        <div class="text-center p-3 bg-slate-50 rounded-lg border border-slate-100">
+                            <p class="text-lg mb-1">🗣️</p>
+                            <p class="text-xs font-medium text-slate-700">Speech Recognition</p>
+                            <p class="text-[10px] text-academic-muted">Phoneme &amp; word models</p>
+                        </div>
+                        <div class="text-center p-3 bg-slate-50 rounded-lg border border-slate-100">
+                            <p class="text-lg mb-1">📈</p>
+                            <p class="text-xs font-medium text-slate-700">Finance</p>
+                            <p class="text-[10px] text-academic-muted">Regime detection</p>
+                        </div>
+                        <div class="text-center p-3 bg-slate-50 rounded-lg border border-slate-100">
+                            <p class="text-lg mb-1">🌦️</p>
+                            <p class="text-xs font-medium text-slate-700">Climate &amp; NLP</p>
+                            <p class="text-[10px] text-academic-muted">Weather, POS tagging</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 12g. Reference -->
+                <div class="text-xs text-academic-muted border-t border-slate-100 pt-4">
+                    <p class="font-semibold text-slate-600 mb-1">References</p>
+                    <ul class="list-disc list-inside space-y-0.5">
+                        <li>L. R. Rabiner, &ldquo;A Tutorial on Hidden Markov Models and Selected Applications in Speech Recognition,&rdquo; <em>Proceedings of the IEEE</em>, vol. 77, no. 2, pp. 257&ndash;286, 1989.</li>
+                        <li>A. P. Dempster, N. M. Laird, D. B. Rubin, &ldquo;Maximum Likelihood from Incomplete Data via the EM Algorithm,&rdquo; <em>JRSS-B</em>, vol. 39, no. 1, pp. 1&ndash;38, 1977.</li>
+                        <li>C. M. Bishop, <em>Pattern Recognition and Machine Learning</em>, Chapter 13: Sequential Data. Springer, 2006.</li>
+                    </ul>
+                </div>
+
             </div>
         </section>
 
     </main>
 
     <!-- ══════════════ FOOTER ══════════════ -->
-    <footer class="border-t border-academic-border mt-12">
-        <div class="max-w-7xl mx-auto px-6 py-5 flex items-center justify-between text-xs text-academic-muted">
-            <span>HMM Baum&ndash;Welch Engine &middot; v1.0</span>
-            <span>Flask-SocketIO &middot; D3.js &middot; Plotly.js</span>
+    <footer class="border-t border-slate-100 bg-white mt-16 pb-8">
+        <div class="max-w-7xl mx-auto px-6 py-6">
+            <div class="flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-slate-500 font-inter">
+                
+                <!-- Left: Copyright & Credit -->
+                <div class="flex flex-col md:flex-row items-center gap-1 md:gap-4">
+                    <span>&copy; 2026 Gabriel James</span>
+                    <span class="hidden md:inline text-slate-300">&middot;</span>
+                    <span>Built by <a href="https://gabrieljames.me" target="_blank" rel="noopener noreferrer" class="text-slate-600 hover:text-sapphire-600 transition-colors font-medium">Gabriel James</a></span>
+                </div>
+
+                <!-- Right: Links -->
+                <div class="flex items-center gap-6">
+                    <span class="text-slate-400" title="Flask-SocketIO + D3.js + Plotly.js">v1.0</span>
+                    
+                    <a href="https://gabrieljames.me" target="_blank" rel="noopener noreferrer" 
+                       class="text-slate-500 hover:text-sapphire-600 transition-colors">
+                        Website
+                    </a>
+
+                    <a href="https://github.com/GabrielJames-CS/Baum-Welch-Algorithm" target="_blank" rel="noopener noreferrer"
+                       class="text-slate-400 hover:text-slate-800 transition-colors group" aria-label="View on GitHub">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" class="transform group-hover:scale-110 transition-transform">
+                            <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
+                        </svg>
+                    </a>
+                </div>
+            </div>
         </div>
     </footer>
 
@@ -504,7 +818,7 @@
     <script src="https://d3js.org/d3.v7.min.js"></script>
     <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
     <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
-    <script src="/static/js/hmm_diagram.js?v=11"></script>
+    <script src="/std/js/state_diagram.js"></script>
     <script>
             (function () {
                 'use strict';
@@ -573,6 +887,43 @@
                         '3, 1, 2, 0, 0, 1, 3, 2, 1, 0, 3, 2, 1, 0, 2, 3, 0, 1, 2, 3';
                     document.getElementById('max-iter').value = 150;
                     document.getElementById('tolerance').value = '1e-8';
+                });
+
+                // ── Advanced Init Toggle ──
+                document.getElementById('toggle-advanced').addEventListener('click', function () {
+                    const panel = document.getElementById('advanced-init-panel');
+                    const knob = document.getElementById('toggle-knob');
+                    const label = document.getElementById('init-mode-label');
+                    const isCurrentlyOpen = !panel.classList.contains('hidden');
+
+                    if (isCurrentlyOpen) {
+                        panel.classList.add('hidden');
+                        this.classList.remove('bg-sapphire-500');
+                        this.classList.add('bg-slate-200');
+                        knob.classList.remove('translate-x-5');
+                        knob.classList.add('translate-x-0');
+                        this.setAttribute('aria-checked', 'false');
+                        label.textContent = 'Using random initialization';
+                    } else {
+                        panel.classList.remove('hidden');
+                        this.classList.remove('bg-slate-200');
+                        this.classList.add('bg-sapphire-500');
+                        knob.classList.remove('translate-x-0');
+                        knob.classList.add('translate-x-5');
+                        this.setAttribute('aria-checked', 'true');
+                        label.textContent = 'Using custom parameters';
+                    }
+                });
+
+                // ── Save Diagram ──
+                document.getElementById('hmm-save').addEventListener('click', function () {
+                    if (hmmDiagram) {
+                        const idx = hmmDiagram.currentIdx;
+                        const iter = (idx >= 0 && hmmDiagram.history[idx])
+                            ? hmmDiagram.history[idx].iteration
+                            : 0;
+                        hmmDiagram.savePNG('hmm_diagram_iter_' + iter + '.png');
+                    }
                 });
 
                 // ── Status helpers ──
@@ -825,12 +1176,12 @@
                 function initCompChart() {
                     Plotly.newPlot('comp-chart', [{
                         x: [], y: [], mode: 'lines',
-                        line: { color: '#D946EF', width: 2 }, // Fuchsia
-                        hovertemplate: 'Iter %{x}<br>1 - P: %{y:.6f}<extra></extra>'
+                        line: { color: '#D946EF', width: 2 },
+                        hovertemplate: 'Iter %{x}<br>1 - P_avg: %{y:.6f}<extra></extra>'
                     }], {
                         margin: { t: 10, r: 30, b: 45, l: 75 },
                         xaxis: { title: { text: 'Model Version (\u03bb)', font: { family: 'Inter', size: 12, color: '#64748b' } }, gridcolor: '#f1f0ed', zeroline: false },
-                        yaxis: { title: { text: '1 - P(O|\u03bb)', font: { family: 'Inter', size: 12, color: '#64748b' } }, gridcolor: '#f1f0ed', zeroline: false },
+                        yaxis: { title: { text: '1 - P(O|\u03bb)^{1/T}', font: { family: 'Inter', size: 12, color: '#64748b' } }, gridcolor: '#f1f0ed', zeroline: false, range: [0, 1] },
                         paper_bgcolor: 'rgba(0,0,0,0)', plot_bgcolor: 'rgba(0,0,0,0)',
                         font: { family: 'JetBrains Mono', size: 10, color: '#64748b' },
                         hovermode: 'x unified'
@@ -838,8 +1189,9 @@
                 }
 
                 function updateCompChart(data) {
-                    const prob = Math.exp(data.log_likelihood);
-                    const comp = 1 - prob;
+                    const T = (data.alpha && data.alpha.length > 0) ? data.alpha.length : 1;
+                    const probPerStep = Math.exp(data.log_likelihood / T);
+                    const comp = Math.max(0, 1 - probPerStep);
                     Plotly.extendTraces('comp-chart', { x: [[data.iteration]], y: [[comp]] }, [0]);
                 }
 
@@ -1094,6 +1446,26 @@
 
                     // Scroll to summary
                     sec.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
+
+                // Fullscreen for HMM diagram
+                const fsBtn = document.getElementById('hmm-fullscreen');
+                const diagramCard = document.getElementById('diagram-card');
+                if (fsBtn && diagramCard) {
+                    fsBtn.addEventListener('click', () => {
+                        if (!document.fullscreenElement) {
+                            (diagramCard.requestFullscreen || diagramCard.webkitRequestFullscreen || diagramCard.msRequestFullscreen).call(diagramCard);
+                        } else {
+                            (document.exitFullscreen || document.webkitExitFullscreen || document.msExitFullscreen).call(document);
+                        }
+                    });
+                    document.addEventListener('fullscreenchange', () => {
+                        const isFs = !!document.fullscreenElement;
+                        fsBtn.innerHTML = isFs
+                            ? '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="4 14 10 14 10 20"/><polyline points="20 10 14 10 14 4"/><line x1="14" y1="10" x2="21" y2="3"/><line x1="10" y1="14" x2="3" y2="21"/></svg>'
+                            : '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg>';
+                        fsBtn.title = isFs ? 'Exit Fullscreen' : 'Fullscreen';
+                    });
                 }
 
             })();

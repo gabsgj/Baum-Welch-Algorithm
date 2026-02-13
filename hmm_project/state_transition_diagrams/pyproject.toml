@@ -1,0 +1,68 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "state-transition-diagrams"
+version = "1.0.0"
+description = "Interactive and static state transition diagram library for HMMs, FSMs, and stateful systems"
+readme = "README.md"
+requires-python = ">=3.10"
+license = {text = "MIT"}
+authors = [
+    {name = "State Transition Diagrams Contributors"},
+]
+keywords = [
+    "state-diagram",
+    "transition-diagram",
+    "hmm",
+    "finite-state-machine",
+    "markov",
+    "visualization",
+    "d3",
+    "graphviz",
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Science/Research",
+    "Intended Audience :: Developers",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: JavaScript",
+    "Topic :: Scientific/Engineering :: Visualization",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "License :: OSI Approved :: MIT License",
+    "Framework :: Flask",
+]
+
+dependencies = [
+    "numpy>=1.24",
+]
+
+[project.optional-dependencies]
+graphviz = [
+    "graphviz>=0.20",
+]
+flask = [
+    "flask>=3.0",
+]
+all = [
+    "graphviz>=0.20",
+    "flask>=3.0",
+]
+dev = [
+    "pytest>=7.0",
+    "pytest-cov>=4.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/your-org/state-transition-diagrams"
+Repository = "https://github.com/your-org/state-transition-diagrams"
+Issues = "https://github.com/your-org/state-transition-diagrams/issues"
+
+[tool.setuptools.packages.find]
+include = ["state_transition_diagrams*"]
+
+[tool.setuptools.package-data]
+state_transition_diagrams = ["static/**/*"]

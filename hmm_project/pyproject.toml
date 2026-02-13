@@ -38,7 +38,10 @@ dev = [
 ]
 
 [tool.setuptools.packages.find]
-include = ["hmm_core*", "hmm_visualization*", "hmm_service*"]
+include = ["hmm_core*", "hmm_visualization*", "hmm_service*", "state_transition_diagrams*"]
+
+[tool.setuptools.package-data]
+state_transition_diagrams = ["static/**/*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

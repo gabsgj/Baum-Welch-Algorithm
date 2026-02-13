@@ -1,3 +1,0 @@
-hmm_core
-hmm_service
-hmm_visualization

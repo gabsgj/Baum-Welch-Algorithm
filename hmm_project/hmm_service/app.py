@@ -14,6 +14,7 @@ from flask import Flask, render_template
 from flask_socketio import SocketIO
 
 from hmm_service.api.routes import api_bp, register_socket_events
+from state_transition_diagrams import create_blueprint as std_blueprint
 
 # SocketIO instance — shared with the routes module.
 socketio = SocketIO(cors_allowed_origins="*", async_mode="eventlet")
@@ -29,6 +30,7 @@ def create_app() -> Flask:
     app.config["JSON_SORT_KEYS"] = False
 
     app.register_blueprint(api_bp)
+    app.register_blueprint(std_blueprint(), url_prefix="/std")
     socketio.init_app(app)
     register_socket_events(socketio)
 

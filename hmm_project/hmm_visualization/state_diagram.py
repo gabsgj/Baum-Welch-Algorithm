@@ -3,12 +3,9 @@ state_diagram.py
 ================
 Graphviz-based state transition diagram renderer.
 
-Produces a directed graph where:
-* Nodes represent hidden states (circular layout).
-* Directed edges represent transition probabilities.
-* Edge widths are proportional to transition probability.
-* Self-loops are clearly visible.
-* Output format is SVG for publication-quality export.
+This module delegates to the ``state_transition_diagrams`` library.
+It is kept for backward compatibility so existing imports continue
+to work unchanged.
 """
 
 from __future__ import annotations
@@ -19,11 +16,8 @@ from typing import Optional, Sequence
 import numpy as np
 import numpy.typing as npt
 
-try:
-    import graphviz
-except ImportError:  # pragma: no cover
-    graphviz = None  # type: ignore[assignment]
-
+from state_transition_diagrams import render_state_diagram as _render
+from state_transition_diagrams.config import DiagramConfig
 from hmm_visualization.styles import STATE_COLORS
 
 
@@ -57,78 +51,13 @@ def render_state_diagram(
     -------
     graphviz.Digraph
     """
-    if graphviz is None:
-        raise ImportError(
-            "The `graphviz` Python package is required. "
-            "Install it with: pip install graphviz"
-        )
-
-    N = A.shape[0]
-    if state_labels is None:
-        state_labels = [f"S{i}" for i in range(N)]
-
-    dot = graphviz.Digraph(
-        name="HMM",
-        comment=title,
-        format=fmt,
-        engine="circo",  # circular layout
+    config = DiagramConfig(state_colors=list(STATE_COLORS))
+    return _render(
+        A,
+        state_labels=state_labels,
+        save_path=save_path,
+        config=config,
+        fmt=fmt,
+        title=title,
+        prob_threshold=prob_threshold,
     )
-
-    # ─── Graph-level attributes ─── #
-    dot.attr(
-        rankdir="LR",
-        bgcolor="#FAFAFA",
-        label=title,
-        labelloc="t",
-        fontsize="18",
-        fontname="Helvetica",
-        pad="0.5",
-    )
-
-    # ─── Node style ─── #
-    for i, label in enumerate(state_labels):
-        color = STATE_COLORS[i % len(STATE_COLORS)]
-        dot.node(
-            str(i),
-            label=label,
-            shape="circle",
-            style="filled",
-            fillcolor=color,
-            fontcolor="white",
-            fontsize="14",
-            fontname="Helvetica Bold",
-            width="1.0",
-            height="1.0",
-            fixedsize="true",
-        )
-
-    # ─── Edges ─── #
-    max_prob = A.max() if A.max() > 0 else 1.0
-    for i in range(N):
-        for j in range(N):
-            p = A[i, j]
-            if p < prob_threshold:
-                continue
-            # Width: 0.5 → 4.0 proportional to probability.
-            penwidth = str(round(0.5 + 3.5 * (p / max_prob), 2))
-            edge_label = f"{p:.3f}"
-            edge_color = "#333333" if i != j else STATE_COLORS[i % len(STATE_COLORS)]
-            dot.edge(
-                str(i), str(j),
-                label=edge_label,
-                penwidth=penwidth,
-                fontsize="10",
-                fontname="Helvetica",
-                color=edge_color,
-                fontcolor=edge_color,
-            )
-
-    if save_path is not None:
-        save_path = Path(save_path)
-        dot.render(
-            filename=save_path.stem,
-            directory=str(save_path.parent),
-            cleanup=True,
-        )
-
-    return dot
