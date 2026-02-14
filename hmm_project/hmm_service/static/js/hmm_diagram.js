@@ -182,7 +182,12 @@ class HMMDiagram {
         const lblSize = N > 8 ? '8px' : '10px';
         const lbl = (x, y, t) => this.svg.append('text').attr('x', x).attr('y', y)
             .attr('fill', '#94a3b8').attr('font-size', lblSize).attr('font-weight', '600')
-            .attr('letter-spacing', '0.05em').text(t);
+        //     .attr('letter-spacing', '0.05em').attr('dominant-baseline', 'middle').text(t);
+        // lbl(20, piY, 'START');
+        // lbl(20, stateY, 'HIDDEN STATES');
+        // lbl(20, obsY, 'OBSERVATIONS');
+
+                    .attr('letter-spacing', '0.05em').text(t);
         lbl(20, piY + 4, 'START');
         lbl(20, stateY - R - 20, 'HIDDEN STATES');
         lbl(20, obsY - obsH / 2 - 20, 'OBSERVATIONS');
@@ -590,6 +595,7 @@ class HMMDiagram {
         if (c.btnLast) c.btnLast.disabled = i >= l - 1;
         if (c.btnPlay) { c.btnPlay.innerHTML = this.isPlaying ? '⏸' : '▶'; c.btnPlay.disabled = l === 0; }
         if (c.timeline) {
+            c.timeline.disabled = l === 0;
             c.timeline.max = Math.max(0, l - 1); c.timeline.value = Math.max(0, i);
             c.timeline.style.setProperty('--progress', l > 1 ? (i / (l - 1)) * 100 + '%' : '0%');
         }

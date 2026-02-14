@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32">
+  <defs>
+    <style>
+      .node { fill: #C5BAFF; }
+      .node-inner { fill: #FBFBFB; }
+      .arrow { stroke: #C4D9FF; stroke-width: 1.5; fill: none; }
+      .bg { fill: #FBFBFB; rx: 6; }
+    </style>
+  </defs>
+  <rect class="bg" width="32" height="32" rx="6"/>
+  <!-- Left state node -->
+  <circle class="node" cx="9" cy="16" r="6"/>
+  <circle class="node-inner" cx="9" cy="16" r="3.5"/>
+  <!-- Right state node -->
+  <circle class="node" cx="23" cy="16" r="6"/>
+  <circle class="node-inner" cx="23" cy="16" r="3.5"/>
+  <!-- Top arrow (left to right) -->
+  <path class="arrow" d="M14 12 Q16 6 19 12" marker-end="url(#ah)"/>
+  <!-- Bottom arrow (right to left) -->
+  <path class="arrow" d="M19 20 Q16 26 14 20" marker-end="url(#ah)"/>
+  <!-- Self-loop left -->
+  <path class="arrow" d="M5 11 Q0 6 5 11" style="stroke:#C5BAFF; stroke-width:1.2;"/>
+  <!-- Arrow marker -->
+  <defs>
+    <marker id="ah" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto">
+      <path d="M0,0 L6,3 L0,6 Z" fill="#C4D9FF"/>
+    </marker>
+  </defs>
+</svg>

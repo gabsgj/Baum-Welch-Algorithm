@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 
 <head>
@@ -7,6 +7,9 @@
     <title>HMM — Live Baum–Welch Training Dashboard</title>
     <meta name="description"
         content="Real-time Hidden Markov Model training dashboard using the Baum-Welch Expectation-Maximization algorithm">
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
 
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -26,12 +29,18 @@
                         mono: ['JetBrains Mono', 'monospace'],
                     },
                     colors: {
+                        palette: {
+                            white: '#F7F6F2',
+                            warm: '#F0E5CF',
+                            gray: '#C8C6C6',
+                            blue: '#4B6587',
+                        },
                         sapphire: {
                             50: '#eff4ff', 100: '#dbe6fe', 200: '#bfd3fe',
                             300: '#93b4fd', 400: '#6090fa', 500: '#2563eb',
                             600: '#1d4ed8', 700: '#1e40af', 800: '#1e3a8a', 900: '#1a2f6b',
                         },
-                        academic: { bg: '#FAF9F6', card: '#FFFFFF', border: '#E2E0DC', muted: '#94918B' }
+                        academic: { bg: '#F7F6F2', card: '#FFFFFF', border: '#C8C6C6', muted: '#999999' }
                     }
                 }
             }
@@ -45,12 +54,32 @@
 
     <style>
         body {
-            background-color: #FAF9F6;
+            background-color: #F7F6F2;
             font-family: 'Inter', system-ui, sans-serif;
         }
 
         .font-mono-num {
             font-family: 'JetBrains Mono', monospace;
+        }
+
+        /* ── Floating Glass Pill ── */
+        .glass-pill {
+            position: fixed;
+            top: 16px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 100;
+            background: rgba(251, 251, 251, 0.05);
+            backdrop-filter: blur(10px) saturate(180%);
+            -webkit-backdrop-filter: blur(10px) saturate(180%);
+            border: 1px solid rgba(200, 198, 198, 0.2);
+            border-radius: 9999px;
+            padding: 12px 36px;
+            box-shadow: 0 8px 32px rgba(75, 101, 135, 0.08), 0 1px 4px rgba(0,0,0,0.03);
+        }
+
+        .glass-pill h1 {
+            font-size: 1rem;
         }
 
         @keyframes pulse-ring {
@@ -71,33 +100,78 @@
         }
 
         .card {
-            background: #FFFFFF;
-            border: 1px solid #E2E0DC;
-            border-radius: 6px;
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.03);
+            background: rgba(247, 246, 242, 0.2);
+            backdrop-filter: blur(32px) saturate(170%);
+            -webkit-backdrop-filter: blur(32px) saturate(170%);
+            border: 1px solid rgba(200, 198, 198, 0.15);
+            border-radius: 10px;
+            box-shadow: 0 8px 32px rgba(75, 101, 135, 0.08), 0 1px 3px rgba(0,0,0,0.01);
+        }
+
+        /* ── Glass Input Fields ── */
+        input[type="number"],
+        input[type="text"],
+        textarea {
+            background: rgba(255, 255, 255, 0.35) !important;
+            backdrop-filter: blur(16px) saturate(140%) !important;
+            -webkit-backdrop-filter: blur(16px) saturate(140%) !important;
+            font-size: 0.95rem !important;
+        }
+
+        input[type="number"]:focus,
+        input[type="text"]:focus,
+        textarea:focus {
+            background: rgba(255, 255, 255, 0.5) !important;
+            backdrop-filter: blur(20px) saturate(170%) !important;
+            -webkit-backdrop-filter: blur(20px) saturate(170%) !important;
+        }
+
+        /* ── Glass Panel ── */
+        .glass-panel {
+            background: rgba(240, 229, 207, 0.15);
+            backdrop-filter: blur(24px) saturate(160%);
+            -webkit-backdrop-filter: blur(24px) saturate(160%);
+            border: 1px solid rgba(200, 198, 198, 0.12);
+        }
+
+        /* ── Glass Buttons ── */
+        .glass-button {
+            background: rgba(75, 101, 135, 0.06);
+            backdrop-filter: blur(16px) saturate(150%);
+            -webkit-backdrop-filter: blur(16px) saturate(150%);
+            border: 1px solid rgba(75, 101, 135, 0.15);
+            transition: all 0.3s ease;
+            font-size: 0.85rem;
+        }
+
+        .glass-button:hover {
+            background: rgba(75, 101, 135, 0.12);
+            backdrop-filter: blur(20px) saturate(170%);
+            -webkit-backdrop-filter: blur(20px) saturate(170%);
+            border-color: rgba(75, 101, 135, 0.25);
         }
 
         .heatmap-cell {
             transition: background-color 0.3s ease;
             font-family: 'JetBrains Mono', monospace;
-            font-size: 0.8rem;
+            font-size: 0.95rem;
         }
 
         /* ── (State diagram styles loaded from /std/css/state_diagram.css) ── */
 
         .pi-bar {
             transition: width 0.3s ease;
-            background: linear-gradient(90deg, #2563EB, #6090fa);
-            border-radius: 3px;
+            background: #4B6587;
+            border-radius: 4px;
             height: 28px;
         }
 
         .section-title {
-            font-size: 0.7rem;
+            font-size: 0.85rem;
             font-weight: 600;
             letter-spacing: 0.08em;
             text-transform: uppercase;
-            color: #94918B;
+            color: #999999;
         }
 
         .js-plotly-plot .plotly .modebar {
@@ -106,45 +180,56 @@
 
         .d3-tooltip {
             position: absolute;
-            background: rgba(30, 58, 138, 0.92);
+            background: rgba(75, 102, 135, 0.6);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
             color: #fff;
-            padding: 6px 10px;
-            border-radius: 4px;
+            padding: 8px 14px;
+            border-radius: 6px;
             font-family: 'JetBrains Mono', monospace;
-            font-size: 11px;
+            font-size: 12px;
             pointer-events: none;
             z-index: 50;
             white-space: nowrap;
+            border: 1px solid rgba(200, 198, 198, 0.15);
         }
 
         /* ── Iteration Log Table ── */
         .iter-table {
             font-family: 'JetBrains Mono', monospace;
-            font-size: 0.72rem;
+            font-size: 0.84rem;
+            border-collapse: separate;
+            border-spacing: 0;
         }
 
         .iter-table th {
-            background: #f8f7f4;
+            background: rgba(240, 229, 207, 0.25);
+            backdrop-filter: blur(20px) saturate(160%);
+            -webkit-backdrop-filter: blur(20px) saturate(160%);
             position: sticky;
             top: 0;
             z-index: 5;
             font-family: 'Inter', sans-serif;
             font-weight: 600;
-            font-size: 0.68rem;
+            font-size: 0.8rem;
             text-transform: uppercase;
             letter-spacing: 0.05em;
-            color: #64748b;
+            color: #4a5568;
+            border-bottom: 2px solid rgba(200, 198, 198, 0.15);
+            white-space: nowrap;
+            padding: 10px 14px;
         }
 
-        .iter-table td,
-        .iter-table th {
-            padding: 6px 10px;
-            border-bottom: 1px solid #f1f0ed;
+        .iter-table td {
+            padding: 9px 14px;
+            border-bottom: 1px solid rgba(200, 198, 198, 0.2);
             white-space: nowrap;
         }
 
         .iter-table tbody tr:hover {
-            background: #f8f7f4;
+            background: rgba(240, 229, 207, 0.15);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
         }
 
         ::-webkit-scrollbar {
@@ -157,8 +242,12 @@
         }
 
         ::-webkit-scrollbar-thumb {
-            background: #d1d0cc;
+            background: rgba(200, 198, 198, 0.5);
             border-radius: 3px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(75, 101, 135, 0.6);
         }
 
         /* ── Mobile responsive ── */
@@ -233,28 +322,25 @@
     </style>
 </head>
 
-<body class="min-h-screen antialiased text-slate-800">
+<body class="min-h-screen antialiased text-slate-700">
 
-    <!-- ══════════════ 1. HEADER ══════════════ -->
-    <header class="border-b border-academic-border bg-white/60 backdrop-blur-sm sticky top-0 z-40">
-        <div class="max-w-7xl mx-auto px-6 py-5 flex items-center justify-between">
-            <div>
-                <h1 class="text-xl font-semibold text-slate-900 tracking-tight">
-                    Hidden Markov Model &mdash; Live Baum&ndash;Welch Training
-                </h1>
-                <p class="text-sm text-academic-muted mt-0.5">
-                    Expectation&ndash;Maximization Optimization Dashboard
-                </p>
-            </div>
+    <!-- ══════════════ 1. FLOATING GLASS PILL ══════════════ -->
+    <div class="glass-pill">
+        <h1 class="text-sm font-semibold text-slate-800 tracking-tight whitespace-nowrap">
+            Hidden Markov Model &mdash; Baum&ndash;Welch Algorithm
+        </h1>
+    </div>
+
+    <main class="max-w-7xl mx-auto px-6 pt-20 pb-8 space-y-10">
+
+        <!-- Status Badge (below pill, inside main flow) -->
+        <div class="flex justify-end -mb-6">
             <div id="status-badge"
-                class="flex items-center gap-2 px-3 py-1.5 rounded-full border border-academic-border text-xs font-medium text-academic-muted bg-academic-bg">
+                class="flex items-center gap-2 px-4 py-2 rounded-full glass-panel text-sm font-medium text-academic-muted">
                 <span class="w-2 h-2 rounded-full bg-slate-400"></span>
                 <span id="status-text">Idle</span>
             </div>
         </div>
-    </header>
-
-    <main class="max-w-7xl mx-auto px-6 py-8 space-y-10">
 
         <!-- ══════════════ 2. CONFIGURATION ══════════════ -->
         <section>
@@ -263,69 +349,63 @@
                 <form id="train-form" class="space-y-5">
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
                         <div>
-                            <label for="n-states" class="block text-sm font-medium text-slate-700 mb-1.5">Hidden States
-                                (N)</label>
+                            <label for="n-states" class="block text-base font-medium text-slate-700 mb-2">Hidden States (N)</label>
                             <input id="n-states" type="number" min="2" max="10" value="2"
-                                class="w-full px-3 py-2 border border-academic-border rounded-md text-sm font-mono-num focus:outline-none focus:ring-2 focus:ring-sapphire-300 focus:border-sapphire-400 bg-white">
+                                class="w-full px-3 py-2 border border-palette-gray/40 rounded-lg text-sm font-mono-num focus:outline-none focus:ring-2 focus:ring-palette-blue/30 focus:border-palette-blue bg-white">
                         </div>
                         <div>
-                            <label for="max-iter" class="block text-sm font-medium text-slate-700 mb-1.5">Max
-                                Iterations</label>
+                            <label for="max-iter" class="block text-base font-medium text-slate-700 mb-2">Max Iterations</label>
                             <input id="max-iter" type="number" min="1" max="2000" value="100"
-                                class="w-full px-3 py-2 border border-academic-border rounded-md text-sm font-mono-num focus:outline-none focus:ring-2 focus:ring-sapphire-300 focus:border-sapphire-400 bg-white">
+                                class="w-full px-3 py-2 border border-palette-gray/40 rounded-lg text-sm font-mono-num focus:outline-none focus:ring-2 focus:ring-palette-blue/30 focus:border-palette-blue bg-white">
                         </div>
                         <div>
-                            <label for="tolerance"
-                                class="block text-sm font-medium text-slate-700 mb-1.5">Tolerance</label>
+                            <label for="tolerance" class="block text-base font-medium text-slate-700 mb-2">Tolerance</label>
                             <input id="tolerance" type="text" value="1e-6"
-                                class="w-full px-3 py-2 border border-academic-border rounded-md text-sm font-mono-num focus:outline-none focus:ring-2 focus:ring-sapphire-300 focus:border-sapphire-400 bg-white">
+                                class="w-full px-3 py-2 border border-palette-gray/40 rounded-lg text-sm font-mono-num focus:outline-none focus:ring-2 focus:ring-palette-blue/30 focus:border-palette-blue bg-white">
                         </div>
                     </div>
                     <div>
-                        <label for="observations" class="block text-sm font-medium text-slate-700 mb-1.5">Observation
-                            Sequence (comma-separated integers, 0-based)</label>
+                        <label for="observations" class="block text-base font-medium text-slate-700 mb-2">Observation Sequence (comma-separated integers, 0-based)</label>
                         <textarea id="observations" rows="3"
-                            class="w-full px-3 py-2 border border-academic-border rounded-md text-sm font-mono-num leading-relaxed focus:outline-none focus:ring-2 focus:ring-sapphire-300 focus:border-sapphire-400 bg-white resize-y"
+                            class="w-full px-3 py-2 border border-palette-gray/40 rounded-lg text-sm font-mono-num leading-relaxed focus:outline-none focus:ring-2 focus:ring-palette-blue/30 focus:border-palette-blue bg-white resize-y"
                             placeholder="e.g. 0, 1, 2, 0, 0, 1, 2, 1, 0, 2">0, 1, 2, 0, 0, 1, 2, 1, 0, 2, 2, 0, 1, 0, 1, 2, 2, 0, 1, 1, 0, 2, 0, 1, 2, 0, 0, 1, 2, 1, 0, 2, 2, 0, 1, 0, 1, 2, 2, 0, 1, 1, 0, 2, 0, 1, 2, 0, 0, 1</textarea>
                     </div>
                     <div class="flex items-center gap-3 pt-1">
                         <button type="button" id="preset-weather"
-                            class="text-xs px-3 py-1.5 rounded border border-academic-border text-slate-600 hover:bg-slate-50 transition">Load
-                            Weather Preset</button>
+                            class="text-sm px-4 py-2 rounded-lg glass-button text-slate-700 font-medium transition">Load Weather Preset</button>
                         <button type="button" id="preset-dna"
-                            class="text-xs px-3 py-1.5 rounded border border-academic-border text-slate-600 hover:bg-slate-50 transition">Load
-                            DNA Preset</button>
+                            class="text-sm px-4 py-2 rounded-lg glass-button text-slate-700 font-medium transition">Load DNA Preset</button>
                     </div>
 
                     <!-- Advanced Initialization Toggle -->
                     <div class="pt-3 pb-1">
                         <div class="flex items-center gap-3">
                             <button type="button" id="toggle-advanced"
-                                class="relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent bg-slate-200 transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-sapphire-400 focus:ring-offset-2"
+                                class="relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent bg-slate-200 transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-palette-blue focus:ring-offset-2"
                                 role="switch" aria-checked="false">
                                 <span id="toggle-knob" class="pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out translate-x-0"></span>
                             </button>
-                            <span class="text-sm font-medium text-slate-700">Advanced Initialization</span>
+                            <span class="text-base font-medium text-slate-700">Advanced Initialization</span>
                             <span id="init-mode-label" class="text-xs text-slate-400 italic ml-1">Using random initialization</span>
                         </div>
                         <div id="advanced-init-panel"
-                            class="hidden mt-3 space-y-3 p-3 bg-slate-50 rounded border border-slate-100 text-xs text-academic-muted animate-fadeIn">
+                            class="hidden mt-3 space-y-3 p-4 glass-panel rounded-lg text-xs text-academic-muted animate-fadeIn">
                             <div>
                                 <label class="block font-medium mb-1 text-slate-700">Transition Matrix A (JSON)</label>
                                 <textarea id="init-a" rows="3"
-                                    class="w-full font-mono border-gray-300 rounded focus:ring-sapphire-500 focus:border-sapphire-500 text-xs"
+                                    class="w-full font-mono border border-palette-gray/40 rounded-lg focus:ring-palette-blue focus:border-palette-blue text-xs bg-white"
                                     placeholder='[[0.7, 0.3], [0.4, 0.6]]' spellcheck="false"></textarea>
                             </div>
                             <div>
                                 <label class="block font-medium mb-1 text-slate-700">Emission Matrix B (JSON)</label>
                                 <textarea id="init-b" rows="3"
-                                    class="w-full font-mono border-gray-300 rounded focus:ring-sapphire-500 focus:border-sapphire-500 text-xs"
+                                    class="w-full font-mono border border-palette-gray/40 rounded-lg focus:ring-palette-blue focus:border-palette-blue text-xs bg-white"
                                     placeholder='[[0.9, 0.1], [0.2, 0.8]]' spellcheck="false"></textarea>
                             </div>
                             <div>
                                 <label class="block font-medium mb-1 text-slate-700">Initial Probabilities &pi; (JSON)</label>
                                 <input type="text" id="init-pi"
-                                    class="w-full font-mono border-gray-300 rounded focus:ring-sapphire-500 focus:border-sapphire-500 text-xs h-8"
+                                    class="w-full font-mono border border-palette-gray/40 rounded-lg focus:ring-palette-blue focus:border-palette-blue text-xs h-8 bg-white"
                                     placeholder='[0.6, 0.4]' spellcheck="false">
                             </div>
                             <p class="text-amber-600 italic text-[10px]">* Provide custom A, B, &pi; matrices in JSON format. Leave individual fields empty for random initialization of that parameter.</p>
@@ -334,7 +414,7 @@
 
                     <div class="pt-2">
                         <button type="submit" id="train-btn"
-                            class="inline-flex items-center px-5 py-2.5 bg-sapphire-500 text-white text-sm font-medium rounded-md hover:bg-sapphire-600 focus:outline-none focus:ring-2 focus:ring-sapphire-300 disabled:opacity-50 disabled:cursor-not-allowed transition">
+                            class="inline-flex items-center px-7 py-3 bg-palette-blue text-white text-base font-semibold rounded-lg hover:bg-[#3a4a63] focus:outline-none focus:ring-2 focus:ring-palette-blue/50 disabled:opacity-50 disabled:cursor-not-allowed transition shadow-lg hover:shadow-xl">
                             <svg id="train-spinner" class="hidden animate-spin -ml-1 mr-2 h-4 w-4 text-white"
                                 xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                                 <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor"
@@ -352,21 +432,21 @@
         <!-- ══════════════ 3. LIVE METRICS ══════════════ -->
         <section id="results-section" class="hidden">
             <p class="section-title mb-3">Live Metrics</p>
-            <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div class="grid grid-cols-2 md:grid-cols-5 gap-4">
                 <div class="card p-4">
-                    <p class="text-xs text-academic-muted font-medium mb-1">Iteration</p>
+                    <p class="text-sm text-academic-muted font-medium mb-2">Iteration</p>
                     <p id="metric-iter" class="text-2xl font-mono-num font-semibold text-slate-800">&mdash;</p>
                 </div>
                 <div class="card p-4">
-                    <p class="text-xs text-academic-muted font-medium mb-1">Log-Likelihood</p>
+                    <p class="text-sm text-academic-muted font-medium mb-2">Log-Likelihood</p>
                     <p id="metric-ll" class="text-2xl font-mono-num font-semibold text-slate-800">&mdash;</p>
                 </div>
                 <div class="card p-4">
-                    <p class="text-xs text-academic-muted font-medium mb-1">&Delta; (Change)</p>
+                    <p class="text-sm text-academic-muted font-medium mb-2">&Delta; (Change)</p>
                     <p id="metric-delta" class="text-2xl font-mono-num font-semibold text-slate-800">&mdash;</p>
                 </div>
                 <div class="card p-4">
-                    <p class="text-xs text-academic-muted font-medium mb-1">Status</p>
+                    <p class="text-sm text-academic-muted font-medium mb-2">Status</p>
                     <p id="metric-status" class="text-2xl font-semibold text-slate-800">&mdash;</p>
                 </div>
             </div>
@@ -375,32 +455,44 @@
         <!-- ══════════════ 4. LOG-LIKELIHOOD CHART ══════════════ -->
         <section id="ll-section" class="hidden">
             <p class="section-title mb-3">Log-Likelihood Convergence &mdash; log P(O|&lambda;)</p>
-            <div class="card p-5">
+            <div class="card p-5 relative">
                 <div id="ll-chart" style="width:100%; height:320px;"></div>
+                <button onclick="downloadChart('ll-chart', 'hmm_log_likelihood')" class="absolute left-5 bottom-8 z-10 p-2 text-slate-600 hover:text-slate-800 bg-white hover:bg-slate-50 border border-slate-300 rounded-lg transition-colors" title="Download chart as PNG">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                </button>
             </div>
         </section>
 
         <!-- ══════════════ 4b. P(O|lambda) CHART ══════════════ -->
         <section id="prob-section" class="hidden">
             <p class="section-title mb-3">Observation Probability &mdash; P(O|&lambda;)</p>
-            <div class="card p-5">
+            <div class="card p-5 relative">
                 <div id="prob-chart" style="width:100%; height:320px;"></div>
+                <button onclick="downloadChart('prob-chart', 'hmm_probability')" class="absolute left-5 bottom-8 z-10 p-2 text-slate-600 hover:text-slate-800 bg-white hover:bg-slate-50 border border-slate-300 rounded-lg transition-colors" title="Download chart as PNG">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                </button>
             </div>
         </section>
 
         <!-- ══════════════ 4c. ERROR CHART (1 - P(O|lambda)) ══════════════ -->
         <section id="error-section" class="hidden">
             <p class="section-title mb-3">Optimization Loss &mdash; Negative Log-Likelihood</p>
-            <div class="card p-5">
+            <div class="card p-5 relative">
                 <div id="error-chart" style="width:100%; height:320px;"></div>
+                <button onclick="downloadChart('error-chart', 'hmm_error')" class="absolute left-5 bottom-8 z-10 p-2 text-slate-600 hover:text-slate-800 bg-white hover:bg-slate-50 border border-slate-300 rounded-lg transition-colors" title="Download chart as PNG">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                </button>
             </div>
         </section>
 
         <!-- ══════════════ 4d. COMPLEMENT CHART (1 - P) ══════════════ -->
         <section id="comp-section" class="hidden">
             <p class="section-title mb-3">Probability Complement &mdash; 1 &minus; P(O|&lambda;)<sup>1/T</sup> vs Model Version</p>
-            <div class="card p-5">
+            <div class="card p-5 relative">
                 <div id="comp-chart" style="width:100%; height:320px;"></div>
+                <button onclick="downloadChart('comp-chart', 'hmm_complement')" class="absolute left-5 bottom-8 z-10 p-2 text-slate-600 hover:text-slate-800 bg-white hover:bg-slate-50 border border-slate-300 rounded-lg transition-colors" title="Download chart as PNG">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                </button>
             </div>
         </section>
 
@@ -467,8 +559,11 @@
         <!-- ══════════════ 9. PARAMETER EVOLUTION ══════════════ -->
         <section id="evolution-section" class="hidden">
             <p class="section-title mb-3">Parameter Evolution &mdash; A[i][j] over iterations</p>
-            <div class="card p-5">
+            <div class="card p-5 relative">
                 <div id="evolution-chart" style="width:100%; height:320px;"></div>
+                <button onclick="downloadChart('evolution-chart', 'hmm_parameter_evolution')" class="absolute left-5 bottom-8 z-10 p-2 text-slate-600 hover:text-slate-800 bg-white hover:bg-slate-50 border border-slate-300 rounded-lg transition-colors" title="Download chart as PNG">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                </button>
             </div>
         </section>
 
@@ -491,10 +586,10 @@
         <section id="intermediate-section" class="hidden">
             <p class="section-title mb-3">Intermediate Variables (Current Iteration)</p>
             <div class="card p-4">
-                <div class="flex gap-4 mb-4 border-b border-gray-100 pb-2">
-                    <button id="btn-show-alpha" class="text-xs font-semibold px-3 py-1 rounded bg-sapphire-100 text-sapphire-700">Alpha (&alpha;)</button>
-                    <button id="btn-show-beta" class="text-xs font-semibold px-3 py-1 rounded hover:bg-slate-100 text-slate-600">Beta (&beta;)</button>
-                    <button id="btn-show-gamma" class="text-xs font-semibold px-3 py-1 rounded hover:bg-slate-100 text-slate-600">Gamma (&gamma;)</button>
+                <div class="flex gap-4 mb-4 border-b border-palette-gray/25 pb-2">
+                    <button id="btn-show-alpha" class="text-xs font-semibold px-3 py-1 rounded-lg bg-palette-blue/20 text-slate-700">Alpha (&alpha;)</button>
+                    <button id="btn-show-beta" class="text-xs font-semibold px-3 py-1 rounded-lg hover:bg-palette-warm/50 text-slate-500">Beta (&beta;)</button>
+                    <button id="btn-show-gamma" class="text-xs font-semibold px-3 py-1 rounded-lg hover:bg-palette-warm/50 text-slate-500">Gamma (&gamma;)</button>
                 </div>
                 
                 <p class="text-xs text-academic-muted mb-2 italic">Showing first 20 time steps only.</p>
@@ -513,11 +608,11 @@
         <!-- ══════════════ 12. ALGORITHM EXPLANATION ══════════════ -->
         <section>
             <p class="section-title mb-3">HMM Theory &amp; Algorithm Reference</p>
-            <div class="card p-6 space-y-8 text-sm text-slate-700 leading-relaxed">
+            <div class="card p-8 space-y-8 text-sm text-slate-800 leading-relaxed text-justify shadow-sm">
 
                 <!-- 12a. Formal Definition -->
                 <div>
-                    <h3 class="font-semibold text-slate-900 mb-2 text-base">1. Hidden Markov Model &mdash; Formal Definition</h3>
+                    <h3 class="font-semibold text-slate-800 mb-2 text-base">1. Hidden Markov Model &mdash; Formal Definition</h3>
                     <p class="mb-3">
                         A Hidden Markov Model (HMM) is a probabilistic generative model for sequential data.
                         The system is assumed to follow a Markov chain of <em>hidden</em> (unobservable) states,
@@ -525,30 +620,30 @@
                     </p>
                     <p class="mb-3">
                         An HMM is fully specified by the parameter tuple
-                        <span class="font-mono-num text-sapphire-700 font-semibold">&lambda; = (A, B, &pi;)</span>, where:
+                        <span class="font-mono-num text-[#4B6587] font-semibold">&lambda; = (A, B, &pi;)</span>, where:
                     </p>
                     <div class="overflow-x-auto">
-                        <table class="text-xs border border-slate-200 rounded w-full mb-3">
-                            <thead class="bg-slate-50">
+                        <table class="text-xs border border-palette-gray/30 rounded-lg w-full mb-3">
+                            <thead class="bg-palette-warm/40">
                                 <tr>
-                                    <th class="px-4 py-2 text-left font-semibold text-slate-800 border-b border-slate-200">Symbol</th>
-                                    <th class="px-4 py-2 text-left font-semibold text-slate-800 border-b border-slate-200">Name</th>
-                                    <th class="px-4 py-2 text-left font-semibold text-slate-800 border-b border-slate-200">Definition</th>
+                                    <th class="px-4 py-2.5 text-left font-semibold text-slate-700 border-b border-palette-gray/30">Symbol</th>
+                                    <th class="px-4 py-2.5 text-left font-semibold text-slate-700 border-b border-palette-gray/30">Name</th>
+                                    <th class="px-4 py-2.5 text-left font-semibold text-slate-700 border-b border-palette-gray/30">Definition</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                <tr class="border-b border-slate-100">
-                                    <td class="px-4 py-2 font-mono-num text-sapphire-700 font-semibold">A</td>
+                                <tr class="border-b border-palette-gray/20">
+                                    <td class="px-4 py-2 font-mono-num text-[#4B6587] font-semibold">A</td>
                                     <td class="px-4 py-2">State Transition Matrix</td>
                                     <td class="px-4 py-2">A[i][j] = P(q<sub>t+1</sub> = S<sub>j</sub> | q<sub>t</sub> = S<sub>i</sub>). Each row sums to 1.</td>
                                 </tr>
-                                <tr class="border-b border-slate-100">
-                                    <td class="px-4 py-2 font-mono-num text-sapphire-700 font-semibold">B</td>
+                                <tr class="border-b border-palette-gray/20">
+                                    <td class="px-4 py-2 font-mono-num text-[#4B6587] font-semibold">B</td>
                                     <td class="px-4 py-2">Emission (Observation) Matrix</td>
                                     <td class="px-4 py-2">B[j][k] = P(O<sub>t</sub> = v<sub>k</sub> | q<sub>t</sub> = S<sub>j</sub>). Each row sums to 1.</td>
                                 </tr>
                                 <tr>
-                                    <td class="px-4 py-2 font-mono-num text-sapphire-700 font-semibold">&pi;</td>
+                                    <td class="px-4 py-2 font-mono-num text-[#4B6587] font-semibold">&pi;</td>
                                     <td class="px-4 py-2">Initial State Distribution</td>
                                     <td class="px-4 py-2">&pi;[i] = P(q<sub>1</sub> = S<sub>i</sub>). Elements sum to 1.</td>
                                 </tr>
@@ -563,92 +658,92 @@
                     </p>
                 </div>
 
-                <hr class="border-slate-100">
+                <hr class="border-palette-gray/20">
 
                 <!-- 12b. Three Fundamental Problems -->
                 <div>
-                    <h3 class="font-semibold text-slate-900 mb-2 text-base">2. Three Fundamental Problems of HMMs</h3>
+                    <h3 class="font-semibold text-slate-800 mb-2 text-base">2. Three Fundamental Problems of HMMs</h3>
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <div class="bg-blue-50 border border-blue-100 rounded-lg p-4">
-                            <p class="font-semibold text-blue-900 mb-1 text-xs uppercase tracking-wider">Problem 1 &mdash; Evaluation</p>
-                            <p class="text-xs text-blue-800 mb-2">Given &lambda; and an observation sequence O, compute P(O|&lambda;).</p>
-                            <p class="text-xs text-blue-600 italic">Solved by the <strong>Forward Algorithm</strong>.</p>
+                        <div class="bg-palette-warm/40 border border-palette-gray/30 rounded-lg p-4">
+                            <p class="font-semibold text-slate-700 mb-1 text-xs uppercase tracking-wider">Problem 1 &mdash; Evaluation</p>
+                            <p class="text-xs text-slate-600 mb-2">Given &lambda; and an observation sequence O, compute P(O|&lambda;).</p>
+                            <p class="text-xs text-slate-500 italic">Solved by the <strong>Forward Algorithm</strong>.</p>
                         </div>
-                        <div class="bg-emerald-50 border border-emerald-100 rounded-lg p-4">
-                            <p class="font-semibold text-emerald-900 mb-1 text-xs uppercase tracking-wider">Problem 2 &mdash; Decoding</p>
-                            <p class="text-xs text-emerald-800 mb-2">Given &lambda; and O, find the most likely hidden state sequence Q*.</p>
-                            <p class="text-xs text-emerald-600 italic">Solved by the <strong>Viterbi Algorithm</strong>.</p>
+                        <div class="bg-palette-warm/40 border border-palette-gray/30 rounded-lg p-4">
+                            <p class="font-semibold text-slate-700 mb-1 text-xs uppercase tracking-wider">Problem 2 &mdash; Decoding</p>
+                            <p class="text-xs text-slate-600 mb-2">Given &lambda; and O, find the most likely hidden state sequence Q*.</p>
+                            <p class="text-xs text-slate-500 italic">Solved by the <strong>Viterbi Algorithm</strong>.</p>
                         </div>
-                        <div class="bg-amber-50 border border-amber-100 rounded-lg p-4">
-                            <p class="font-semibold text-amber-900 mb-1 text-xs uppercase tracking-wider">Problem 3 &mdash; Learning</p>
-                            <p class="text-xs text-amber-800 mb-2">Given O, find &lambda;* = argmax<sub>&lambda;</sub> P(O|&lambda;).</p>
-                            <p class="text-xs text-amber-600 italic">Solved by the <strong>Baum&ndash;Welch Algorithm</strong> (this tool).</p>
+                        <div class="bg-palette-blue/10 border border-palette-gray/30 rounded-lg p-4">
+                            <p class="font-semibold text-slate-700 mb-1 text-xs uppercase tracking-wider">Problem 3 &mdash; Learning</p>
+                            <p class="text-xs text-slate-600 mb-2">Given O, find &lambda;* = argmax<sub>&lambda;</sub> P(O|&lambda;).</p>
+                            <p class="text-xs text-slate-500 italic">Solved by the <strong>Baum&ndash;Welch Algorithm</strong> (this tool).</p>
                         </div>
                     </div>
                 </div>
 
-                <hr class="border-slate-100">
+                <hr class="border-palette-gray/20">
 
                 <!-- 12c. Forward Algorithm -->
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
                     <div>
-                        <h3 class="font-semibold text-slate-900 mb-2 text-base">3. Forward Algorithm</h3>
+                        <h3 class="font-semibold text-slate-800 mb-2 text-base">3. Forward Algorithm</h3>
                         <p class="mb-3">
-                            The forward variable <span class="font-mono-num text-sapphire-700">&alpha;<sub>t</sub>(i)</span>
+                            The forward variable <span class="font-mono-num text-[#4B6587]">&alpha;<sub>t</sub>(i)</span>
                             represents the probability of observing the partial sequence O<sub>1</sub>, O<sub>2</sub>, &hellip;, O<sub>t</sub>
                             and being in state S<sub>i</sub> at time <em>t</em>.
                         </p>
-                        <div class="bg-slate-50 rounded-lg p-3 mb-2 font-mono text-xs border border-slate-200 space-y-2">
-                            <p class="text-slate-500 italic">Initialization:</p>
+                        <div class="bg-palette-warm/30 rounded-lg p-3 mb-2 font-mono text-xs border border-palette-gray/30 space-y-2">
+                            <p class="text-slate-400 italic">Initialization:</p>
                             <p>&alpha;<sub>1</sub>(i) = &pi;<sub>i</sub> &middot; B[i][O<sub>1</sub>]</p>
-                            <p class="text-slate-500 italic mt-2">Induction (t = 2, &hellip;, T):</p>
+                            <p class="text-slate-400 italic mt-2">Induction (t = 2, &hellip;, T):</p>
                             <p>&alpha;<sub>t</sub>(j) = [ &Sigma;<sub>i=1</sub><sup>N</sup> &alpha;<sub>t&minus;1</sub>(i) &middot; A[i][j] ] &middot; B[j][O<sub>t</sub>]</p>
-                            <p class="text-slate-500 italic mt-2">Termination:</p>
+                            <p class="text-slate-400 italic mt-2">Termination:</p>
                             <p>P(O|&lambda;) = &Sigma;<sub>i=1</sub><sup>N</sup> &alpha;<sub>T</sub>(i)</p>
                         </div>
                         <p class="text-xs text-academic-muted">Complexity: <span class="font-mono-num">O(N&sup2;T)</span> vs brute-force <span class="font-mono-num">O(N<sup>T</sup>)</span></p>
                     </div>
                     <div>
-                        <h3 class="font-semibold text-slate-900 mb-2 text-base">4. Backward Algorithm</h3>
+                        <h3 class="font-semibold text-slate-800 mb-2 text-base">4. Backward Algorithm</h3>
                         <p class="mb-3">
-                            The backward variable <span class="font-mono-num text-sapphire-700">&beta;<sub>t</sub>(i)</span>
+                            The backward variable <span class="font-mono-num text-[#4B6587]">&beta;<sub>t</sub>(i)</span>
                             represents the probability of the partial observation sequence from <em>t+1</em> to <em>T</em>,
                             given state S<sub>i</sub> at time <em>t</em>.
                         </p>
-                        <div class="bg-slate-50 rounded-lg p-3 mb-2 font-mono text-xs border border-slate-200 space-y-2">
-                            <p class="text-slate-500 italic">Initialization:</p>
+                        <div class="bg-palette-warm/30 rounded-lg p-3 mb-2 font-mono text-xs border border-palette-gray/30 space-y-2">
+                            <p class="text-slate-400 italic">Initialization:</p>
                             <p>&beta;<sub>T</sub>(i) = 1 &nbsp; &forall; i</p>
-                            <p class="text-slate-500 italic mt-2">Induction (t = T&minus;1, &hellip;, 1):</p>
+                            <p class="text-slate-400 italic mt-2">Induction (t = T&minus;1, &hellip;, 1):</p>
                             <p>&beta;<sub>t</sub>(i) = &Sigma;<sub>j=1</sub><sup>N</sup> A[i][j] &middot; B[j][O<sub>t+1</sub>] &middot; &beta;<sub>t+1</sub>(j)</p>
                         </div>
                         <p class="text-xs text-academic-muted">Both &alpha; and &beta; are computed in the E-Step of Baum&ndash;Welch.</p>
                     </div>
                 </div>
 
-                <hr class="border-slate-100">
+                <hr class="border-palette-gray/20">
 
                 <!-- 12d. Baum-Welch EM -->
                 <div>
-                    <h3 class="font-semibold text-slate-900 mb-3 text-base">5. Baum&ndash;Welch Algorithm (EM for HMMs)</h3>
+                    <h3 class="font-semibold text-slate-800 mb-3 text-base">5. Baum&ndash;Welch Algorithm (EM for HMMs)</h3>
                     <p class="mb-4">
                         The Baum&ndash;Welch algorithm is a special case of the Expectation&ndash;Maximization (EM) framework
                         applied to HMMs. It iteratively alternates between computing the expected sufficient statistics
                         (<strong>E-Step</strong>) and re-estimating the model parameters (<strong>M-Step</strong>).
                     </p>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div class="bg-sapphire-50 border border-sapphire-100 rounded-lg p-4">
-                            <h4 class="font-semibold text-sapphire-900 mb-2">E-Step: Compute Responsibilities</h4>
-                            <ul class="space-y-2 text-xs text-sapphire-800">
+                        <div class="bg-palette-warm/30 border border-palette-gray/30 rounded-lg p-4">
+                            <h4 class="font-semibold text-slate-700 mb-2">E-Step: Compute Responsibilities</h4>
+                            <ul class="space-y-2 text-xs text-slate-600">
                                 <li class="flex items-start gap-2">
-                                    <span class="text-sapphire-400 mt-0.5">&#9654;</span>
+                                    <span class="text-palette-blue mt-0.5">&#9654;</span>
                                     <span>Compute <span class="font-mono-num font-semibold">&alpha;<sub>t</sub>(i)</span> via the forward pass</span>
                                 </li>
                                 <li class="flex items-start gap-2">
-                                    <span class="text-sapphire-400 mt-0.5">&#9654;</span>
+                                    <span class="text-palette-blue mt-0.5">&#9654;</span>
                                     <span>Compute <span class="font-mono-num font-semibold">&beta;<sub>t</sub>(i)</span> via the backward pass</span>
                                 </li>
                                 <li class="flex items-start gap-2">
-                                    <span class="text-sapphire-400 mt-0.5">&#9654;</span>
+                                    <span class="text-palette-blue mt-0.5">&#9654;</span>
                                     <span>
                                         <span class="font-mono-num font-semibold">&gamma;<sub>t</sub>(i)</span> =
                                         P(q<sub>t</sub>=S<sub>i</sub> | O, &lambda;) =
@@ -656,7 +751,7 @@
                                     </span>
                                 </li>
                                 <li class="flex items-start gap-2">
-                                    <span class="text-sapphire-400 mt-0.5">&#9654;</span>
+                                    <span class="text-palette-blue mt-0.5">&#9654;</span>
                                     <span>
                                         <span class="font-mono-num font-semibold">&xi;<sub>t</sub>(i,j)</span> =
                                         P(q<sub>t</sub>=S<sub>i</sub>, q<sub>t+1</sub>=S<sub>j</sub> | O, &lambda;)
@@ -664,11 +759,11 @@
                                 </li>
                             </ul>
                         </div>
-                        <div class="bg-emerald-50 border border-emerald-100 rounded-lg p-4">
-                            <h4 class="font-semibold text-emerald-900 mb-2">M-Step: Re-estimate Parameters</h4>
-                            <div class="space-y-2 text-xs text-emerald-800 font-mono">
+                        <div class="bg-palette-blue/10 border border-palette-blue/25 rounded-lg p-4">
+                            <h4 class="font-semibold text-slate-700 mb-2">M-Step: Re-estimate Parameters</h4>
+                            <div class="space-y-2 text-xs text-slate-600 font-mono">
                                 <div class="flex items-start gap-2">
-                                    <span class="text-emerald-400 mt-0.5 font-sans">&#9654;</span>
+                                    <span class="text-palette-gray mt-0.5 font-sans">&#9654;</span>
                                     <span>
                                         <span class="font-semibold font-sans">Transition:</span>
                                         A&#770;[i][j] = &Sigma;<sub>t=1</sub><sup>T&minus;1</sup> &xi;<sub>t</sub>(i,j)
@@ -676,7 +771,7 @@
                                     </span>
                                 </div>
                                 <div class="flex items-start gap-2">
-                                    <span class="text-emerald-400 mt-0.5 font-sans">&#9654;</span>
+                                    <span class="text-palette-gray mt-0.5 font-sans">&#9654;</span>
                                     <span>
                                         <span class="font-semibold font-sans">Emission:</span>
                                         B&#770;[j][k] = &Sigma;<sub>t: O<sub>t</sub>=v<sub>k</sub></sub> &gamma;<sub>t</sub>(j)
@@ -684,7 +779,7 @@
                                     </span>
                                 </div>
                                 <div class="flex items-start gap-2">
-                                    <span class="text-emerald-400 mt-0.5 font-sans">&#9654;</span>
+                                    <span class="text-palette-gray mt-0.5 font-sans">&#9654;</span>
                                     <span>
                                         <span class="font-semibold font-sans">Initial:</span>
                                         &pi;&#770;[i] = &gamma;<sub>1</sub>(i)
@@ -695,17 +790,17 @@
                     </div>
                 </div>
 
-                <hr class="border-slate-100">
+                <hr class="border-palette-gray/20">
 
                 <!-- 12e. Convergence & Scaling -->
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
                     <div>
-                        <h3 class="font-semibold text-slate-900 mb-2 text-base">6. Convergence Guarantees</h3>
+                        <h3 class="font-semibold text-slate-800 mb-2 text-base">6. Convergence Guarantees</h3>
                         <p class="mb-2">
                             The EM framework guarantees that the log-likelihood is <strong>monotonically non-decreasing</strong>
                             across iterations:
                         </p>
-                        <div class="bg-slate-50 rounded-lg p-3 mb-3 font-mono text-xs border border-slate-200 text-center">
+                        <div class="bg-palette-warm/30 rounded-lg p-3 mb-3 font-mono text-xs border border-palette-gray/30 text-center">
                             log P(O|&lambda;<sup>(n+1)</sup>) &ge; log P(O|&lambda;<sup>(n)</sup>)
                         </div>
                         <p class="text-xs text-academic-muted mb-2">
@@ -719,7 +814,7 @@
                         </p>
                     </div>
                     <div>
-                        <h3 class="font-semibold text-slate-900 mb-2 text-base">7. Numerical Stability &mdash; Scaling</h3>
+                        <h3 class="font-semibold text-slate-800 mb-2 text-base">7. Numerical Stability &mdash; Scaling</h3>
                         <p class="mb-2">
                             For long observation sequences, the forward and backward variables can underflow to zero.
                             This implementation uses <strong>log-space scaling</strong> (Rabiner, 1989):
@@ -736,37 +831,64 @@
                     </div>
                 </div>
 
-                <hr class="border-slate-100">
+                <hr class="border-palette-gray/20">
 
                 <!-- 12f. Applications -->
                 <div>
-                    <h3 class="font-semibold text-slate-900 mb-2 text-base">8. Applications</h3>
-                    <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
-                        <div class="text-center p-3 bg-slate-50 rounded-lg border border-slate-100">
-                            <p class="text-lg mb-1">🧬</p>
-                            <p class="text-xs font-medium text-slate-700">Bioinformatics</p>
-                            <p class="text-[10px] text-academic-muted">Gene finding, protein families</p>
+                    <h3 class="font-semibold text-slate-800 mb-4 text-base font-sans">8. Applications</h3> <!-- Kept sans for headers -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 font-sans"> <!-- Sans for these cards -->
+                        <!-- Bio -->
+                        <div class="group relative p-4 rounded-2xl glass-panel border border-palette-gray/10 hover:border-palette-blue/20 hover:bg-white/40 transition-all duration-300 hover:shadow-lg overflow-hidden">
+                            <div class="absolute inset-0 bg-gradient-to-br from-blue-50/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                            <div class="relative z-10 flex flex-col items-center text-center">
+                                <div class="w-12 h-12 flex items-center justify-center rounded-full bg-palette-warm/50 text-2xl mb-3 group-hover:scale-110 transition-transform duration-300">
+                                    🧬
+                                </div>
+                                <h4 class="font-semibold text-slate-700 text-sm mb-1">Bioinformatics</h4>
+                                <p class="text-[11px] text-slate-500 leading-relaxed">Gene finding, protein family classification &amp; sequence alignment.</p>
+                            </div>
                         </div>
-                        <div class="text-center p-3 bg-slate-50 rounded-lg border border-slate-100">
-                            <p class="text-lg mb-1">🗣️</p>
-                            <p class="text-xs font-medium text-slate-700">Speech Recognition</p>
-                            <p class="text-[10px] text-academic-muted">Phoneme &amp; word models</p>
+
+                        <!-- Speech -->
+                        <div class="group relative p-4 rounded-2xl glass-panel border border-palette-gray/10 hover:border-palette-blue/20 hover:bg-white/40 transition-all duration-300 hover:shadow-lg overflow-hidden">
+                            <div class="absolute inset-0 bg-gradient-to-br from-blue-50/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                            <div class="relative z-10 flex flex-col items-center text-center">
+                                <div class="w-12 h-12 flex items-center justify-center rounded-full bg-palette-warm/50 text-2xl mb-3 group-hover:scale-110 transition-transform duration-300">
+                                    🗣️
+                                </div>
+                                <h4 class="font-semibold text-slate-700 text-sm mb-1">Speech Recognition</h4>
+                                <p class="text-[11px] text-slate-500 leading-relaxed">Acoustic modeling, phoneme recognition &amp; large vocabulary models.</p>
+                            </div>
                         </div>
-                        <div class="text-center p-3 bg-slate-50 rounded-lg border border-slate-100">
-                            <p class="text-lg mb-1">📈</p>
-                            <p class="text-xs font-medium text-slate-700">Finance</p>
-                            <p class="text-[10px] text-academic-muted">Regime detection</p>
+
+                        <!-- Finance -->
+                        <div class="group relative p-4 rounded-2xl glass-panel border border-palette-gray/10 hover:border-palette-blue/20 hover:bg-white/40 transition-all duration-300 hover:shadow-lg overflow-hidden">
+                            <div class="absolute inset-0 bg-gradient-to-br from-blue-50/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                            <div class="relative z-10 flex flex-col items-center text-center">
+                                <div class="w-12 h-12 flex items-center justify-center rounded-full bg-palette-warm/50 text-2xl mb-3 group-hover:scale-110 transition-transform duration-300">
+                                    📈
+                                </div>
+                                <h4 class="font-semibold text-slate-700 text-sm mb-1">Quantitative Finance</h4>
+                                <p class="text-[11px] text-slate-500 leading-relaxed">Regime switching detection, volatility modeling &amp; market analysis.</p>
+                            </div>
                         </div>
-                        <div class="text-center p-3 bg-slate-50 rounded-lg border border-slate-100">
-                            <p class="text-lg mb-1">🌦️</p>
-                            <p class="text-xs font-medium text-slate-700">Climate &amp; NLP</p>
-                            <p class="text-[10px] text-academic-muted">Weather, POS tagging</p>
+
+                        <!-- NLP -->
+                        <div class="group relative p-4 rounded-2xl glass-panel border border-palette-gray/10 hover:border-palette-blue/20 hover:bg-white/40 transition-all duration-300 hover:shadow-lg overflow-hidden">
+                            <div class="absolute inset-0 bg-gradient-to-br from-blue-50/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                            <div class="relative z-10 flex flex-col items-center text-center">
+                                <div class="w-12 h-12 flex items-center justify-center rounded-full bg-palette-warm/50 text-2xl mb-3 group-hover:scale-110 transition-transform duration-300">
+                                    🌦️
+                                </div>
+                                <h4 class="font-semibold text-slate-700 text-sm mb-1">Pattern Recognition</h4>
+                                <p class="text-[11px] text-slate-500 leading-relaxed">Climate pattern analysis, POS tagging &amp; handwriting recognition.</p>
+                            </div>
                         </div>
                     </div>
                 </div>
 
                 <!-- 12g. Reference -->
-                <div class="text-xs text-academic-muted border-t border-slate-100 pt-4">
+                <div class="text-xs text-academic-muted border-t border-palette-gray/20 pt-4">
                     <p class="font-semibold text-slate-600 mb-1">References</p>
                     <ul class="list-disc list-inside space-y-0.5">
                         <li>L. R. Rabiner, &ldquo;A Tutorial on Hidden Markov Models and Selected Applications in Speech Recognition,&rdquo; <em>Proceedings of the IEEE</em>, vol. 77, no. 2, pp. 257&ndash;286, 1989.</li>
@@ -781,34 +903,29 @@
     </main>
 
     <!-- ══════════════ FOOTER ══════════════ -->
-    <footer class="border-t border-slate-100 bg-white mt-16 pb-8">
-        <div class="max-w-7xl mx-auto px-6 py-6">
-            <div class="flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-slate-500 font-inter">
-                
-                <!-- Left: Copyright & Credit -->
-                <div class="flex flex-col md:flex-row items-center gap-1 md:gap-4">
-                    <span>&copy; 2026 Gabriel James</span>
-                    <span class="hidden md:inline text-slate-300">&middot;</span>
-                    <span>Built by <a href="https://gabrieljames.me" target="_blank" rel="noopener noreferrer" class="text-slate-600 hover:text-sapphire-600 transition-colors font-medium">Gabriel James</a></span>
-                </div>
-
-                <!-- Right: Links -->
-                <div class="flex items-center gap-6">
-                    <span class="text-slate-400" title="Flask-SocketIO + D3.js + Plotly.js">v1.0</span>
-                    
-                    <a href="https://gabrieljames.me" target="_blank" rel="noopener noreferrer" 
-                       class="text-slate-500 hover:text-sapphire-600 transition-colors">
-                        Website
-                    </a>
-
-                    <a href="https://github.com/GabrielJames-CS/Baum-Welch-Algorithm" target="_blank" rel="noopener noreferrer"
-                       class="text-slate-400 hover:text-slate-800 transition-colors group" aria-label="View on GitHub">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" class="transform group-hover:scale-110 transition-transform">
-                            <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
-                        </svg>
-                    </a>
+    <footer class="border-t border-palette-gray/15 glass-panel mt-16 py-8">
+        <div class="max-w-7xl mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-4">
+            
+            <!-- Left: Man Art & Copyright -->
+            <div class="flex items-center gap-4">
+                <svg width="21" height="36" viewBox="0 0 28 48" fill="none" xmlns="http://www.w3.org/2000/svg" aria-label="Human Icon" class="text-palette-blue opacity-60 hover:opacity-100 transition-opacity duration-300">
+                    <rect x="11" y="2" width="6" height="6" fill="#4B6587" rx="1"></rect>
+                    <rect x="10" y="10" width="8" height="14" fill="#4B6587" rx="1"></rect>
+                    <rect x="4" y="12" width="4" height="10" transform="rotate(-30 6 12)" fill="#4B6587" rx="1"></rect>
+                    <rect x="20" y="12" width="4" height="10" transform="rotate(30 22 12)" fill="#4B6587" rx="1"></rect>
+                    <rect x="8" y="26" width="5" height="18" fill="#4B6587" rx="1"></rect>
+                    <rect x="15" y="26" width="5" height="18" fill="#4B6587" rx="1"></rect>
+                </svg>
+                <div class="text-xs text-black font-medium">
+                    &copy; 2026 Gabriel James <span class="inline-block">💫</span>
                 </div>
             </div>
+
+            <!-- Right: Links -->
+            <nav class="flex gap-6 text-xs font-medium text-palette-blue/80">
+                <a href="https://gabrieljames.me" target="_blank" rel="noopener noreferrer" class="hover:text-palette-blue transition-colors">Website</a>
+                <a href="https://github.com/GabrielJames-CS/Baum-Welch-Algorithm" target="_blank" rel="noopener noreferrer" class="hover:text-palette-blue transition-colors">GitHub</a>
+            </nav>
         </div>
     </footer>
 
@@ -860,9 +977,9 @@
                     ['alpha', 'beta', 'gamma'].forEach(v => {
                         const btn = document.getElementById(`btn-show-${v}`);
                         if (v === view) {
-                            btn.className = 'text-xs font-semibold px-3 py-1 rounded bg-sapphire-100 text-sapphire-700';
+                            btn.className = 'text-xs font-semibold px-3 py-1 rounded-lg bg-palette-blue/20 text-slate-700';
                         } else {
-                            btn.className = 'text-xs font-semibold px-3 py-1 rounded hover:bg-slate-100 text-slate-600';
+                            btn.className = 'text-xs font-semibold px-3 py-1 rounded-lg hover:bg-palette-warm/50 text-slate-500';
                         }
                     });
                     // Refresh table if data exists
@@ -898,7 +1015,7 @@
 
                     if (isCurrentlyOpen) {
                         panel.classList.add('hidden');
-                        this.classList.remove('bg-sapphire-500');
+                        this.classList.remove('bg-palette-blue');
                         this.classList.add('bg-slate-200');
                         knob.classList.remove('translate-x-5');
                         knob.classList.add('translate-x-0');
@@ -907,7 +1024,7 @@
                     } else {
                         panel.classList.remove('hidden');
                         this.classList.remove('bg-slate-200');
-                        this.classList.add('bg-sapphire-500');
+                        this.classList.add('bg-palette-blue');
                         knob.classList.remove('translate-x-0');
                         knob.classList.add('translate-x-5');
                         this.setAttribute('aria-checked', 'true');
@@ -933,16 +1050,16 @@
                     dot.innerHTML = '';
                     dot.style.position = '';
                     if (status === 'Training') {
-                        dot.className = 'w-2 h-2 rounded-full bg-sapphire-500 status-pulse';
-                        dot.innerHTML = '<span class="absolute w-2 h-2 rounded-full bg-sapphire-400 pulse-dot"></span>';
+                        dot.className = 'w-2 h-2 rounded-full bg-palette-blue status-pulse';
+                        dot.innerHTML = '<span class="absolute w-2 h-2 rounded-full bg-palette-blue/70 pulse-dot"></span>';
                         dot.style.position = 'relative';
-                        statusBadge.className = 'flex items-center gap-2 px-3 py-1.5 rounded-full border border-sapphire-200 text-xs font-medium text-sapphire-600 bg-sapphire-50';
+                        statusBadge.className = 'flex items-center gap-2 px-3 py-1.5 rounded-full border border-palette-blue/30 text-xs font-medium text-slate-600 bg-palette-blue/10';
                     } else if (status === 'Converged') {
                         dot.className = 'w-2 h-2 rounded-full bg-emerald-500';
                         statusBadge.className = 'flex items-center gap-2 px-3 py-1.5 rounded-full border border-emerald-300 text-xs font-medium text-emerald-700 bg-emerald-50';
                     } else {
                         dot.className = 'w-2 h-2 rounded-full bg-slate-400';
-                        statusBadge.className = 'flex items-center gap-2 px-3 py-1.5 rounded-full border border-academic-border text-xs font-medium text-academic-muted bg-academic-bg';
+                        statusBadge.className = 'flex items-center gap-2 px-3 py-1.5 rounded-full border border-palette-gray/40 text-xs font-medium text-gray-600 bg-white';
                     }
                 }
 
@@ -1000,7 +1117,7 @@
                     document.getElementById('metric-ll').textContent = '\u2014';
                     document.getElementById('metric-delta').textContent = '\u2014';
                     document.getElementById('metric-status').textContent = 'Starting';
-                    document.getElementById('metric-status').className = 'text-2xl font-semibold text-sapphire-600';
+                    document.getElementById('metric-status').className = 'text-2xl font-semibold text-palette-blue';
 
                     // Build iteration log table header
                     buildIterTableHeader();
@@ -1221,7 +1338,7 @@
                             const g = Math.round(255 - v * (255 - 99));
                             const b = Math.round(255 - v * (255 - 235));
                             const tc = v > 0.55 ? '#fff' : '#1e293b';
-                            h += `<td class="heatmap-cell text-center border border-slate-100"
+                            h += `<td class="heatmap-cell text-center border border-palette-gray/20"
                           style="width:${cs}px;height:${cs}px;background:rgb(${r},${g},${b});color:${tc};line-height:${cs}px;">
                           ${v.toFixed(3)}</td>`;
                         }
@@ -1241,7 +1358,7 @@
                         const pct = (pi[i] * 100).toFixed(1);
                         h += `<div class="flex items-center gap-3">
                     <span class="text-xs font-medium text-slate-600 w-8">S${i}</span>
-                    <div class="flex-1 bg-slate-100 rounded h-7 overflow-hidden">
+                    <div class="flex-1 bg-[#F0E5CF]/40 rounded-lg h-7 overflow-hidden">
                         <div class="pi-bar" style="width:${pct}%; min-width:2px;"></div>
                     </div>
                     <span class="font-mono-num text-xs text-slate-700 w-16 text-right">${pi[i].toFixed(4)}</span>
@@ -1349,21 +1466,21 @@
                     const T = data.length;
                     const N = data[0].length;
 
-                    let html = '<table class="iter-table w-full text-left border-collapse border border-slate-200">';
+                    let html = '<table class="iter-table w-full text-left border-collapse border border-[#C8C6C6]/30">';
                     
                     // Header
-                    html += '<thead><tr><th class="border border-slate-200 bg-slate-50">t</th>';
-                    for(let i=0; i<N; i++) html += `<th class="border border-slate-200 bg-slate-50 text-center">S${i}</th>`;
+                    html += '<thead><tr><th class="border border-[#C8C6C6]/30 bg-[#F0E5CF]/50">t</th>';
+                    for(let i=0; i<N; i++) html += `<th class="border border-[#C8C6C6]/30 bg-[#F0E5CF]/50 text-center">S${i}</th>`;
                     html += '</tr></thead><tbody>';
 
                     for(let t=0; t<limit; t++) {
-                        html += `<tr><td class="border border-slate-200 font-semibold bg-slate-50 text-center">${t}</td>`;
+                        html += `<tr><td class="border border-[#C8C6C6]/20 font-semibold bg-[#F0E5CF]/30 text-center">${t}</td>`;
                         for(let i=0; i<N; i++) {
                             // Highlight large values
                             const val = data[t][i];
                             const isLarge = val > (1.0/N);
                             const style = isLarge ? 'font-weight:600; color:#1e293b;' : 'color:#94a3b8;';
-                            html += `<td class="border border-slate-200 text-center" style="${style}">${val.toExponential(4)}</td>`;
+                            html += `<td class="border border-[#C8C6C6]/20 text-center" style="${style}">${val.toExponential(4)}</td>`;
                         }
                         html += '</tr>';
                     }
@@ -1388,58 +1505,58 @@
 
                     // Stats bar
                     html += `<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-            <div class="bg-slate-50 rounded p-3">
-                <p class="text-xs text-academic-muted mb-0.5">Total Iterations</p>
+            <div class="bg-[#F0E5CF]/40 rounded-lg p-3">
+                <p class="text-xs text-[#7B7B8E] mb-0.5">Total Iterations</p>
                 <p class="font-mono-num font-semibold text-lg">${completionData.n_iterations}</p>
             </div>
-            <div class="bg-slate-50 rounded p-3">
-                <p class="text-xs text-academic-muted mb-0.5">Final log P(O|&lambda;)</p>
+            <div class="bg-[#F0E5CF]/40 rounded-lg p-3">
+                <p class="text-xs text-[#7B7B8E] mb-0.5">Final log P(O|&lambda;)</p>
                 <p class="font-mono-num font-semibold text-lg">${completionData.final_log_likelihood.toFixed(6)}</p>
             </div>
-            <div class="bg-slate-50 rounded p-3">
-                <p class="text-xs text-academic-muted mb-0.5">Final P(O|&lambda;)</p>
+            <div class="bg-[#F0E5CF]/40 rounded-lg p-3">
+                <p class="text-xs text-[#7B7B8E] mb-0.5">Final P(O|&lambda;)</p>
                 <p class="font-mono-num font-semibold text-lg">${Math.exp(completionData.final_log_likelihood).toExponential(4)}</p>
             </div>
-            <div class="bg-slate-50 rounded p-3">
-                <p class="text-xs text-academic-muted mb-0.5">Converged</p>
+            <div class="bg-[#F0E5CF]/40 rounded-lg p-3">
+                <p class="text-xs text-[#7B7B8E] mb-0.5">Converged</p>
                 <p class="font-semibold text-lg ${completionData.converged ? 'text-emerald-600' : 'text-amber-600'}">${completionData.converged ? 'Yes' : 'No (max iter)'}</p>
             </div>
         </div>`;
 
                     // ── Transition Matrix A ──
                     html += '<h3 class="text-sm font-semibold text-slate-700 mb-2">Transition Matrix A</h3>';
-                    html += '<div class="overflow-x-auto mb-5"><table class="iter-table border-collapse border border-slate-200">';
-                    html += '<tr><th class="border border-slate-200 bg-slate-50"></th>';
-                    for (let j = 0; j < A[0].length; j++) html += `<th class="border border-slate-200 bg-slate-50 text-center">S${j}</th>`;
+                    html += '<div class="overflow-x-auto mb-5"><table class="iter-table border-collapse border border-[#C8C6C6]/30">';
+                    html += '<tr><th class="border border-[#C8C6C6]/30 bg-[#F0E5CF]/50"></th>';
+                    for (let j = 0; j < A[0].length; j++) html += `<th class="border border-[#C8C6C6]/30 bg-[#F0E5CF]/50 text-center">S${j}</th>`;
                     html += '</tr>';
                     for (let i = 0; i < A.length; i++) {
-                        html += `<tr><td class="border border-slate-200 bg-slate-50 font-semibold text-center">S${i}</td>`;
+                        html += `<tr><td class="border border-[#C8C6C6]/20 bg-[#F0E5CF]/30 font-semibold text-center">S${i}</td>`;
                         for (let j = 0; j < A[i].length; j++)
-                            html += `<td class="border border-slate-200 text-center">${A[i][j].toFixed(6)}</td>`;
+                            html += `<td class="border border-[#C8C6C6]/20 text-center">${A[i][j].toFixed(6)}</td>`;
                         html += '</tr>';
                     }
                     html += '</table></div>';
 
                     // ── Emission Matrix B ──
                     html += '<h3 class="text-sm font-semibold text-slate-700 mb-2">Emission Matrix B</h3>';
-                    html += '<div class="overflow-x-auto mb-5"><table class="iter-table border-collapse border border-slate-200">';
-                    html += '<tr><th class="border border-slate-200 bg-slate-50"></th>';
-                    for (let k = 0; k < B[0].length; k++) html += `<th class="border border-slate-200 bg-slate-50 text-center">O${k}</th>`;
+                    html += '<div class="overflow-x-auto mb-5"><table class="iter-table border-collapse border border-[#C8C6C6]/30">';
+                    html += '<tr><th class="border border-[#C8C6C6]/30 bg-[#F0E5CF]/50"></th>';
+                    for (let k = 0; k < B[0].length; k++) html += `<th class="border border-[#C8C6C6]/30 bg-[#F0E5CF]/50 text-center">O${k}</th>`;
                     html += '</tr>';
                     for (let i = 0; i < B.length; i++) {
-                        html += `<tr><td class="border border-slate-200 bg-slate-50 font-semibold text-center">S${i}</td>`;
+                        html += `<tr><td class="border border-[#C8C6C6]/20 bg-[#F0E5CF]/30 font-semibold text-center">S${i}</td>`;
                         for (let k = 0; k < B[i].length; k++)
-                            html += `<td class="border border-slate-200 text-center">${B[i][k].toFixed(6)}</td>`;
+                            html += `<td class="border border-[#C8C6C6]/20 text-center">${B[i][k].toFixed(6)}</td>`;
                         html += '</tr>';
                     }
                     html += '</table></div>';
 
                     // ── Initial Distribution ──
                     html += '<h3 class="text-sm font-semibold text-slate-700 mb-2">Initial Distribution &pi;</h3>';
-                    html += '<div class="overflow-x-auto"><table class="iter-table border-collapse border border-slate-200"><tr>';
-                    for (let i = 0; i < pi.length; i++) html += `<th class="border border-slate-200 bg-slate-50 text-center">&pi;(S${i})</th>`;
+                    html += '<div class="overflow-x-auto"><table class="iter-table border-collapse border border-[#C8C6C6]/30"><tr>';
+                    for (let i = 0; i < pi.length; i++) html += `<th class="border border-[#C8C6C6]/30 bg-[#F0E5CF]/50 text-center">&pi;(S${i})</th>`;
                     html += '</tr><tr>';
-                    for (let i = 0; i < pi.length; i++) html += `<td class="border border-slate-200 text-center">${pi[i].toFixed(6)}</td>`;
+                    for (let i = 0; i < pi.length; i++) html += `<td class="border border-[#C8C6C6]/20 text-center">${pi[i].toFixed(6)}</td>`;
                     html += '</tr></table></div>';
 
                     document.getElementById('summary-content').innerHTML = html;
@@ -1469,6 +1586,50 @@
                 }
 
             })();
+
+            // Chart download functionality
+            window.downloadChart = function(chartId, filename) {
+                const chartElement = document.getElementById(chartId);
+                if (!chartElement) {
+                    console.error('Chart element not found:', chartId);
+                    return;
+                }
+
+                const currentLayout = chartElement.layout || {};
+                const originalPaperBg = currentLayout.paper_bgcolor;
+                const originalPlotBg = currentLayout.plot_bgcolor;
+
+                Plotly.relayout(chartElement, {
+                    paper_bgcolor: '#FFFFFF',
+                    plot_bgcolor: '#FFFFFF'
+                })
+                    .then(function() {
+                        return Plotly.toImage(chartElement, {
+                            format: 'png',
+                            width: 1200,
+                            height: 600,
+                            scale: 2
+                        });
+                    })
+                    .then(function(dataUrl) {
+                        const link = document.createElement('a');
+                        link.download = filename + '.png';
+                        link.href = dataUrl;
+                        document.body.appendChild(link);
+                        link.click();
+                        document.body.removeChild(link);
+                    })
+                    .catch(function(err) {
+                        console.error('Error downloading chart:', err);
+                        alert('Failed to download chart. Please try again.');
+                    })
+                    .finally(function() {
+                        Plotly.relayout(chartElement, {
+                            paper_bgcolor: originalPaperBg ?? 'rgba(0,0,0,0)',
+                            plot_bgcolor: originalPlotBg ?? 'rgba(0,0,0,0)'
+                        });
+                    });
+            };
     </script>
 
 
