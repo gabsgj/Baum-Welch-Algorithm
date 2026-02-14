@@ -16,7 +16,7 @@ This script:
 
 Usage
 -----
-    cd hmm_project
+    cd Baum-Welch-Algorithm
     python examples/weather_example.py
 """
 
@@ -28,7 +28,7 @@ from pathlib import Path
 
 import numpy as np
 
-# Ensure hmm_project is on the path when run as a script.
+# Ensure repository root is on the path when run as a script.
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from hmm_core.training.trainer import HMMTrainer

@@ -257,7 +257,7 @@ As shown in the detailed short-vs-long sequence examples in `HMM_v3`:
 ## 2) Repository Structure
 
 ```text
-hmm_project/
+Baum-Welch-Algorithm/
   app.py                          # Root production entry (Zeabur/Gunicorn)
   pyproject.toml                  # Packaging + dependencies
   requirements.txt                # Runtime dependencies
@@ -298,7 +298,7 @@ hmm_project/
 ### 3.2 Install
 
 ```bash
-cd hmm_project
+cd Baum-Welch-Algorithm
 python -m venv .venv
 .venv\Scripts\activate
 pip install -e .
@@ -317,7 +317,7 @@ pip install -r requirements.txt
 ### 4.1 Run web service (recommended)
 
 ```bash
-cd hmm_project
+cd Baum-Welch-Algorithm
 python app.py
 ```
 
@@ -334,7 +334,7 @@ Then open:
 ### 4.2 Run training example
 
 ```bash
-cd hmm_project
+cd Baum-Welch-Algorithm
 python examples/weather_example.py
 ```
 
@@ -349,7 +349,7 @@ This script trains a weather HMM and saves convergence/parameter visualizations 
 Run:
 
 ```bash
-cd hmm_project
+cd Baum-Welch-Algorithm
 python examples/weather_example.py
 ```
 
@@ -368,7 +368,7 @@ What you get:
 1. Start server:
 
 ```bash
-cd hmm_project
+cd Baum-Welch-Algorithm
 python app.py
 ```
 
@@ -480,7 +480,7 @@ You asked for practical measures to take data from the PDF. The safest workflow 
 Run it:
 
 ```bash
-cd hmm_project
+cd Baum-Welch-Algorithm
 python _extract_pdf.py
 ```
 
@@ -545,7 +545,7 @@ For real datasets:
 ## 10) Testing
 
 ```bash
-cd hmm_project
+cd Baum-Welch-Algorithm
 pytest
 ```
 

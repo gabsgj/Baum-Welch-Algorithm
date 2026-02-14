@@ -36,7 +36,7 @@ git push origin main
 1. Log in at https://zeabur.com
 2. Click **New Project** → **Deploy from Git**
 3. Authorise GitHub and select your repository
-4. **Set Root Directory** → `hmm_project` (Settings → Root Directory) since the repo has a parent folder
+4. Leave **Root Directory** empty (use repository root)
 
 ### 3. Verify
 
@@ -69,5 +69,5 @@ python app.py
 |---|---|
 | Build fails | Check Zeabur build logs; ensure `requirements.txt` is complete |
 | WebSocket not connecting | Confirm `--worker-class eventlet` is in the start command |
-| 404 on `/` | Verify root directory is set to `hmm_project` |
+| 404 on `/` | Verify Zeabur root directory is repository root |
 | Missing packages | Run `pip install -e .` locally to verify deps resolve |
