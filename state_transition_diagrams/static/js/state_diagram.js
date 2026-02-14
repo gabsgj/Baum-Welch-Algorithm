@@ -236,9 +236,12 @@ class StateTransitionDiagram {
         // Apply dynamic height to container
         this.container.style.height = H + 'px';
 
+        this._svgW = W;
+        this._svgH = H;
         this.svg = d3.select(this.container).append('svg')
             .attr('width', W).attr('height', H)
             .attr('viewBox', `0 0 ${W} ${H}`)
+            .attr('preserveAspectRatio', 'xMidYMid meet')
             .style('font-family', this.fontFamily);
         const defs = this.svg.append('defs');
 
@@ -895,6 +898,30 @@ class StateTransitionDiagram {
             this.toggle3D();
             c.btn3D.classList.toggle('active');
         });
+
+        // Fullscreen resize handling
+        this._fsHandler = () => this._handleFullscreenChange();
+        document.addEventListener('fullscreenchange', this._fsHandler);
+        document.addEventListener('webkitfullscreenchange', this._fsHandler);
+    }
+
+    _handleFullscreenChange() {
+        if (!this.svg) return;
+        const svgNode = this.svg.node();
+        const card = this.container.closest('#diagram-card');
+        const isFs = !!(document.fullscreenElement || document.webkitFullscreenElement);
+
+        if (isFs && card) {
+            // In fullscreen: remove fixed dimensions and let CSS flex handle sizing
+            svgNode.removeAttribute('width');
+            svgNode.removeAttribute('height');
+            this.container.style.height = '';
+        } else {
+            // Exiting fullscreen: restore original fixed dimensions
+            svgNode.setAttribute('width', this._svgW);
+            svgNode.setAttribute('height', this._svgH);
+            this.container.style.height = this._svgH + 'px';
+        }
     }
     _updateControls() {
         const c = this._ctrl; if (!c) return;

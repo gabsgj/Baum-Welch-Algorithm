@@ -1,823 +1,877 @@
-# HMM Baum–Welch Project (Discrete Hidden Markov Models)
+﻿# HMM Baum-Welch Algorithm
 
-This project is a full, production-oriented implementation of **Hidden Markov Model (HMM)** training using the **Baum–Welch algorithm** (the EM algorithm for HMMs), with:
+> A production-grade Hidden Markov Model engine with real-time interactive web dashboard
 
-- a clean, modular Python core (`hmm_core`) for inference and optimization,
-- a visualization layer (`hmm_visualization`) for diagnostics,
-- a Flask + Socket.IO web dashboard (`hmm_service`) for interactive training.
+[![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue.svg)](https://www.python.org/downloads/)
+[![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+[![Flask](https://img.shields.io/badge/flask-3.0%2B-lightgrey.svg)](https://flask.palletsprojects.com/)
+[![NumPy](https://img.shields.io/badge/numpy-1.24%2B-013243.svg)](https://numpy.org/)
 
-It is designed to be both **educational** (you can inspect every step of the math) and **practical** (you can train, monitor convergence, and deploy as a web service).
+A complete, from-scratch implementation of **Hidden Markov Model (HMM)** training using the **Baum-Welch algorithm** (Expectation-Maximization for HMMs). The project spans three layers:
+
+- **`hmm_core`** — Pure-Python/NumPy mathematical engine: scaled forward-backward inference, responsibility computation ($\gamma$, $\xi$), Baum-Welch re-estimation, and convergence monitoring. Every intermediate variable is inspectable for educational use.
+- **`hmm_service`** — Full-stack Flask + Socket.IO web application providing a single-page dashboard with real-time per-iteration training updates streamed over WebSocket.
+- **`hmm_visualization`** — Matplotlib/Seaborn diagnostic plots (convergence curves, matrix heatmaps, parameter trajectories) and Graphviz state transition diagrams.
+
+The codebase is designed to be both **educational** — walk through the Baum-Welch pipeline step by step with inspectable $\alpha$, $\beta$, $\gamma$, $\xi$ arrays — and **practical** — deploy as a web service or embed the core engine into your own Python projects.
+
+### Key Features
+
+| Feature | Description |
+|---|---|
+| **Real-time training** | Per-iteration parameter updates streamed via WebSocket; watch $A$, $B$, $\pi$ evolve live |
+| **Animated state diagram** | D3.js-powered interactive diagram with particle flow animations, drag-to-rearrange nodes, replay controls, speed slider, and fullscreen mode |
+| **Interactive heatmaps** | Plotly.js heatmaps for transition ($A$) and emission ($B$) matrices with hover detail |
+| **Convergence plotting** | Log-likelihood curve rendered with Plotly.js, auto-scaled axes |
+| **Programmatic API** | `HMMTrainer` class for scripting, Jupyter notebooks, and batch experiments |
+| **REST + WebSocket API** | `POST /api/train` for synchronous training; `start_training` WebSocket event for streaming |
+| **Numerical stability** | Per-timestep scaling prevents underflow on long sequences |
+| **One-command deploy** | `zbpack.json` configures Zeabur; also runnable with Gunicorn + eventlet locally |
+| **Modular architecture** | Each mathematical operation lives in its own module; easy to extend or swap components |
 
 ---
 
 ## Live Demo
 
-- Production deployment: **https://bwa.gabrieljames.me**
-
----
-
-## Tech Stack
-
-### Core modeling and training
-
-- Python 3.11+
-- NumPy (numerical computation)
-- Custom HMM engine (`hmm_core`) implementing:
-  - scaled forward-backward inference,
-  - Baum–Welch EM optimization,
-  - convergence checks and parameter validation.
-
-### Web application
-
-- Flask (web server + routing)
-- Flask-SocketIO + eventlet (realtime iteration updates)
-- HTML/CSS/JavaScript dashboard (`hmm_service`)
-- Plotly.js + D3.js for interactive visualizations
-
-### Visualization and diagrams
-
-- Matplotlib + Seaborn (plots and heatmaps)
-- Graphviz (state transition diagrams)
-
-### Deployment and packaging
-
-- Gunicorn (production server)
-- `pyproject.toml` + `requirements.txt`
-- Zeabur-compatible entry setup (`app.py`, `zbpack.json`)
-
----
-
-## Practical Applications
-
-This project can be used as both a learning framework and a practical sequence-modeling engine in domains where system states are hidden but outputs are observed.
-
-### 1) Weather and environmental pattern modeling
-
-- Infer hidden weather regimes (e.g., dry/wet, stable/unstable) from observed event sequences.
-- Use transition matrix \(A\) to understand regime persistence and switching behavior.
-
-### 2) Finance and market regime detection
-
-- Model latent market conditions (bull, bear, sideways) from discretized price/volume behavior.
-- Track transition probabilities to estimate how likely the market is to remain in or switch regimes.
-
-### 3) User behavior analytics
-
-- Learn hidden user intent states from clickstream or interaction sequences.
-- Use emission distributions \(B\) to interpret which actions are characteristic of each latent behavior mode.
-
-### 4) Predictive maintenance and IoT monitoring
-
-- Represent hidden machine health states (normal, degraded, critical) from sensor-event symbols.
-- Detect abnormal transition patterns early and support preventive intervention.
-
-### 5) Healthcare and patient-journey modeling
-
-- Model latent clinical progression stages from observed diagnosis/treatment events.
-- Support retrospective analysis of pathway transitions and care sequence dynamics.
-
-### 6) NLP and sequence labeling (discrete setting)
-
-- Apply to token-category sequences where tags/states are hidden.
-- Useful as a transparent baseline for segmentation, tagging, or simple structure discovery tasks.
-
-### 7) Education and research use
-
-- Demonstrate the full Baum–Welch pipeline with inspectable intermediate variables \(\alpha, \beta, \gamma, \xi\).
-- Compare convergence behavior across sequence lengths, initialization seeds, and model sizes.
-
-### Why this repository is useful in practice
-
-- **Interactive dashboard**: inspect training dynamics iteration-by-iteration.
-- **Programmatic API**: embed training directly into experiments or production scripts.
-- **Visualization toolkit**: generate interpretable artifacts for reports and presentations.
-- **Deployment-ready setup**: host and share model behavior through a web UI.
+**https://bwa.gabrieljames.me**
 
 ---
 
 ## Screenshots
 
-Add your final UI screenshots in this section when publishing. Suggested files:
-
-- `docs/screenshots/dashboard-overview.png`
-- `docs/screenshots/training-in-progress.png`
-- `docs/screenshots/convergence-chart.png`
-- `docs/screenshots/state-diagram.png`
-
-Recommended README image blocks:
-
-```markdown
-![Dashboard Overview](docs/screenshots/dashboard-overview.png)
-![Training In Progress](docs/screenshots/training-in-progress.png)
-![Convergence Chart](docs/screenshots/convergence-chart.png)
-![State Diagram](docs/screenshots/state-diagram.png)
-```
+<!-- Add screenshots here -->
 
 ---
 
-## 1) Theory Background (from HMM_v3)
+## Table of Contents
 
-The project follows the theory in `HMM_v3.pdf`, which explains Baum–Welch in an intuitive but mathematically rigorous way.
-
-### 1.1 HMM definition
-
-An HMM is defined by the parameter tuple:
-
-\[
-\lambda = (A, B, \pi)
-\]
-
-Where:
-
-- Hidden state set: \(Q = \{1,2,\dots,N\}\)
-- Observation symbol set: \(\mathcal{O} = \{O_1, O_2, \dots, O_M\}\)
-- Initial distribution: \(\pi_i = P(q_1 = i)\)
-- Transition probabilities: \(a_{ij} = P(q_{t+1}=j \mid q_t=i)\)
-- Emission probabilities: \(b_i(o) = P(O_t=o \mid q_t=i)\)
-
-For an observation sequence \(O=(O_1, O_2, \dots, O_T)\), we want parameters that maximize \(P(O\mid\lambda)\).
-
----
-
-### 1.2 Forward variables (prefix evidence)
-
-\[
-\alpha_t(i) = P(O_1, O_2, \dots, O_t, q_t=i \mid \lambda)
-\]
-
-Recurrence:
-
-- Initialization:
-  \[
-  \alpha_1(i) = \pi_i\,b_i(O_1)
-  \]
-- Recursion:
-  \[
-  \alpha_{t+1}(j) = \left(\sum_{i=1}^N \alpha_t(i)a_{ij}\right)b_j(O_{t+1})
-  \]
+- [Tech Stack](#tech-stack)
+- [Repository Structure](#repository-structure)
+- [Setup](#setup)
+- [Quick Start](#quick-start)
+- [Programmatic Usage](#programmatic-usage)
+- [Web Dashboard Guide](#web-dashboard-guide)
+- [API Reference](#api-reference)
+- [Weather Example Walkthrough](#weather-example-walkthrough)
+- [Theory Background](#theory-background)
+- [Numerical Stability](#numerical-stability)
+- [Math-to-Code Map](#math-to-code-map)
+- [Data Preparation](#data-preparation)
+- [Convergence and Model Selection](#convergence-and-model-selection)
+- [Practical Applications](#practical-applications)
+- [Testing](#testing)
+- [Deployment](#deployment)
+- [Troubleshooting](#troubleshooting)
+- [Reproducibility Checklist](#reproducibility-checklist)
+- [Contributing](#contributing)
+- [License](#license)
 
 ---
 
-### 1.3 Backward variables (suffix evidence)
+## Tech Stack
 
-\[
-\beta_t(i) = P(O_{t+1}, O_{t+2}, \dots, O_T \mid q_t=i, \lambda)
-\]
-
-Recurrence:
-
-- Initialization:
-  \[
-  \beta_T(i)=1
-  \]
-- Recursion:
-  \[
-  \beta_t(i)=\sum_{j=1}^N a_{ij} b_j(O_{t+1})\beta_{t+1}(j)
-  \]
+| Layer | Technologies | Role |
+|---|---|---|
+| **Core engine** | Python 3.11+, NumPy ≥1.24 | Forward-backward algorithm, Baum-Welch re-estimation, scaling |
+| **Web framework** | Flask ≥3.0, Flask-SocketIO ≥5.3, eventlet ≥0.35 | HTTP server, WebSocket transport, async worker |
+| **Frontend** | Tailwind CSS 3.4, Plotly.js 2.27, D3.js v7, Socket.IO 4.7 | Dashboard styling, interactive charts, live diagrams |
+| **Visualization** | Matplotlib ≥3.7, Seaborn ≥0.13, Graphviz ≥0.20 | Static plots, heatmaps, state transition diagrams |
+| **Deployment** | Gunicorn ≥21.0, Zeabur | Production WSGI server with eventlet worker |
+| **Dev tools** | pytest ≥7.0, pytest-cov, Node.js/npm (Tailwind rebuilds) | Testing and CSS build pipeline |
 
 ---
 
-### 1.4 Sequence likelihood
-
-\[
-P(O\mid\lambda)=\sum_{i=1}^N \alpha_T(i)
-\]
-
-In practice, long sequences can underflow numerically, so scaled recursions are used (implemented in this repository).
-
----
-
-### 1.5 Responsibilities (soft assignments)
-
-State occupancy responsibility:
-
-\[
-\gamma_t(i)=P(q_t=i\mid O,\lambda)=\frac{\alpha_t(i)\beta_t(i)}{P(O\mid\lambda)}
-\]
-
-Transition responsibility:
-
-\[
-\xi_t(i,j)=\frac{\alpha_t(i)a_{ij}b_j(O_{t+1})\beta_{t+1}(j)}{P(O\mid\lambda)}
-\]
-
-Interpretation:
-
-- \(\gamma_t(i)\): “How much of time step \(t\) belongs to state \(i\)?”
-- \(\xi_t(i,j)\): “How much expected flow goes from \(i\to j\) at time \(t\)?”
-
----
-
-### 1.6 M-step updates (Baum–Welch)
-
-Given responsibilities, re-estimate parameters:
-
-- Initial distribution:
-  \[
-  \pi_i^{new}=\gamma_1(i)
-  \]
-
-- Transition matrix:
-  \[
-  a_{ij}^{new}=\frac{\sum_{t=1}^{T-1}\xi_t(i,j)}{\sum_{t=1}^{T-1}\gamma_t(i)}
-  \]
-
-- Emission matrix (discrete symbols):
-  \[
-  b_i^{new}(o)=\frac{\sum_{t:O_t=o}\gamma_t(i)}{\sum_{t=1}^{T}\gamma_t(i)}
-  \]
-
-This is exactly “normalized expected counts.”
-
----
-
-### 1.7 EM loop intuition
-
-Each iteration does:
-
-1. **E-step**: run forward-backward and compute \(\gamma,\xi\)
-2. **M-step**: normalize expected counts to get new \((A,B,\pi)\)
-3. Check convergence via likelihood improvement
-
-A key point emphasized in `HMM_v3`: observations do not directly overwrite parameters; they **reshape probability flow**, and that flow updates parameters.
-
----
-
-### 1.8 Why longer sequences help
-
-As shown in the detailed short-vs-long sequence examples in `HMM_v3`:
-
-- short sequences can cause sharp, unstable parameter jumps,
-- longer sequences provide more expected counts,
-- variance reduces through averaging,
-- updates become smoother and converge more reliably.
-
----
-
-## 2) Repository Structure
+## Repository Structure
 
 ```text
 Baum-Welch-Algorithm/
-  app.py                          # Root production entry (Zeabur/Gunicorn)
-  pyproject.toml                  # Packaging + dependencies
-  requirements.txt                # Runtime dependencies
-  DEPLOYMENT.md                   # Deployment guide
-
-  hmm_core/                       # Mathematical engine
-    inference/                    # forward/backward, responsibilities, scaling
-    initialization/               # random parameter initialization
-    model/                        # HMM and parameter classes
-    optimization/                 # Baum-Welch update + convergence checks
-    training/                     # training loop and result containers
-    utils/                        # validation/normalization helpers
-
-  hmm_service/                    # Flask + Socket.IO app
-    api/                          # REST + WebSocket routes/schemas
-    templates/                    # Dashboard HTML
-    static/                       # CSS/JS assets
-
-  hmm_visualization/              # Diagnostic plots and diagrams
-  state_transition_diagrams/      # Diagram rendering components
-  examples/                       # runnable example scripts
-  tests/                          # unit tests
-
-  HMM_v3_extracted.txt            # extracted text from HMM_v3.pdf
-  _extract_pdf.py                 # helper script used for PDF text extraction
+├── app.py                        # Production entry point — exports `app` for Gunicorn
+├── pyproject.toml                # PEP 621 packaging, dependencies, and tool config
+├── requirements.txt              # Runtime dependencies (pip install -r)
+├── zbpack.json                   # Zeabur deployment config (Python 3.11, start command)
+├── package.json                  # npm scripts for Tailwind CSS build
+├── tailwind.config.js            # Tailwind content paths and theme extensions
+├── README.md                     # This file
+│
+├── hmm_core/                     # Pure-Python/NumPy mathematical engine
+│   ├── __init__.py
+│   ├── inference/                # E-step: forward-backward pass
+│   │   ├── forward_backward.py   # Orchestrates scaled forward + backward + log-likelihood
+│   │   ├── responsibilities.py   # Computes γ and ξ from α, β
+│   │   ├── scaling.py            # Per-timestep scaling utilities
+│   │   └── components/           # Individual computation modules
+│   │       ├── alpha.py          # Forward variable α_t(i)
+│   │       ├── beta.py           # Backward variable β_t(i)
+│   │       ├── gamma.py          # State responsibility γ_t(i)
+│   │       └── xi.py             # Transition responsibility ξ_t(i,j)
+│   ├── initialization/
+│   │   └── random_init.py        # Dirichlet-based random A, B, π initialization
+│   ├── model/
+│   │   ├── hmm.py                # HiddenMarkovModel wrapper dataclass
+│   │   └── parameters.py         # HMMParameters(A, B, pi) container
+│   ├── optimization/
+│   │   ├── baum_welch_step.py    # M-step: re-estimate A, B, π from γ, ξ
+│   │   └── convergence.py        # |ΔLL| convergence check
+│   ├── training/
+│   │   ├── trainer.py            # HMMTrainer — full EM loop with callbacks
+│   │   └── training_result.py    # TrainingResult dataclass (params, history, metadata)
+│   └── utils/
+│       ├── normalization.py      # Row-stochastic normalization helpers
+│       └── validation.py         # Input validation (dimensions, non-negativity, etc.)
+│
+├── hmm_service/                  # Flask + Socket.IO web application
+│   ├── __init__.py
+│   ├── app.py                    # Application factory: create_app() + SocketIO init
+│   ├── api/
+│   │   ├── routes.py             # REST blueprint (/api/train) + WebSocket event handlers
+│   │   └── schemas.py            # TrainRequest / TrainResponse validation dataclasses
+│   ├── services/
+│   │   ├── hmm_runner.py         # Training orchestration for REST and WebSocket modes
+│   │   └── model_store.py        # In-memory model store keyed by UUID
+│   ├── templates/
+│   │   └── index.html            # Single-page dashboard (1600+ lines)
+│   └── static/
+│       ├── style.css             # Base custom styles
+│       ├── css/
+│       │   ├── tailwind.input.css    # Tailwind directives (input)
+│       │   ├── tailwind.generated.css # Compiled Tailwind output (committed)
+│       │   └── hmm_diagram.css       # Diagram-specific styles (fullscreen, controls)
+│       └── js/
+│           └── hmm_diagram.js        # Legacy diagram JS (kept for compat)
+│
+├── hmm_visualization/            # Matplotlib/Seaborn diagnostic plots
+│   ├── heatmaps.py               # A/B matrix heatmaps (plot_heatmap)
+│   ├── parameter_trajectory.py   # Parameter evolution over iterations
+│   ├── state_diagram.py          # Graphviz-rendered state transition diagrams
+│   ├── styles.py                 # Shared Matplotlib style configuration
+│   └── training_plots.py         # Log-likelihood convergence curve
+│
+├── state_transition_diagrams/    # D3.js interactive state diagram library
+│   ├── __init__.py               # Flask blueprint factory (create_blueprint)
+│   ├── config.py                 # Default diagram configuration
+│   ├── renderer.py               # Server-side rendering utilities
+│   ├── flask_blueprint.py        # Blueprint registration helpers
+│   └── static/
+│       ├── css/state_diagram.css # Diagram CSS with fullscreen support
+│       └── js/state_diagram.js   # StateTransitionDiagram class (D3.js, ~940 lines)
+│
+├── examples/
+│   ├── weather_example.py        # Classic Rainy/Sunny HMM demo script
+│   └── output/                   # Generated plots from running the example
+│
+├── tests/
+│   ├── test_baum_welch.py        # Baum-Welch re-estimation tests
+│   ├── test_forward_backward.py  # Forward-backward numerical correctness
+│   ├── test_normalization.py     # Row-stochastic normalization tests
+│   ├── test_training.py          # End-to-end training pipeline tests
+│   └── audit_hmm.py             # Diagnostic audit script
+│
+└── docs/
+    └── screenshots/              # Screenshots for documentation
 ```
 
 ---
 
-## 3) Setup
+## Setup
 
-### 3.1 Requirements
+### Prerequisites
 
-- Python 3.11+
-- (Optional) Graphviz system binary for diagram rendering
-- (Optional) Node.js + npm for Tailwind CSS rebuilds used by web UI
+| Requirement | Purpose | Required? |
+|---|---|---|
+| **Python 3.11+** | Runtime for core engine and web server | Yes |
+| **pip** | Package installation | Yes |
+| **[Graphviz](https://graphviz.org/download/)** system binary | Rendering static state transition diagrams (SVG/PDF) | Optional |
+| **Node.js + npm** | Rebuilding Tailwind CSS after template changes | Optional |
 
-### 3.2 Install
+### Installation
+
+**1. Clone the repository:**
 
 ```bash
+git clone https://github.com/<your-username>/Baum-Welch-Algorithm.git
 cd Baum-Welch-Algorithm
+```
+
+**2. Create and activate a virtual environment:**
+
+```bash
 python -m venv .venv
+
+# Windows
 .venv\Scripts\activate
+
+# macOS / Linux
+source .venv/bin/activate
+```
+
+**3. Install the package (editable mode, recommended):**
+
+```bash
 pip install -e .
 ```
 
-Alternative:
+This installs `hmm_core`, `hmm_service`, `hmm_visualization`, and `state_transition_diagrams` as linked packages so code changes take effect immediately.
+
+**Alternatively**, install only the runtime dependencies:
 
 ```bash
 pip install -r requirements.txt
 ```
 
----
-
-## 4) Running the project
-
-### 4.1 Run web service (recommended)
+**4. (Optional) Install dev dependencies for testing:**
 
 ```bash
-cd Baum-Welch-Algorithm
+pip install -e ".[dev]"
+```
+
+**5. (Optional) Rebuild Tailwind CSS** (only needed if you modify HTML templates or JS files):
+
+```bash
+npm install
+npx tailwindcss -c tailwind.config.js -i ./hmm_service/static/css/tailwind.input.css -o ./hmm_service/static/css/tailwind.generated.css --minify
+```
+
+### Verifying the Installation
+
+```bash
+# Run the test suite
+pytest
+
+# Check that the core engine works
+python -c "from hmm_core.training.trainer import HMMTrainer; print('OK')"
+
+# Check that the web app starts
 python app.py
+# → Open http://127.0.0.1:5000/
 ```
-
-or
-
-```bash
-python -m hmm_service.app
-```
-
-Then open:
-
-- `http://127.0.0.1:5000/`
-
-### 4.2 Run training example
-
-```bash
-cd Baum-Welch-Algorithm
-python examples/weather_example.py
-```
-
-This script trains a weather HMM and saves convergence/parameter visualizations under `examples/output/`.
 
 ---
 
-## Practical Examples
+## Quick Start
 
-### Example 1: End-to-end weather model training
-
-Run:
+### Run the Web Dashboard
 
 ```bash
-cd Baum-Welch-Algorithm
-python examples/weather_example.py
-```
-
-What you get:
-
-- trained transition matrix \(A\), emission matrix \(B\), and \(\pi\),
-- per-iteration log-likelihood history,
-- saved plots:
-  - convergence curve,
-  - parameter trajectory,
-  - heatmaps,
-  - state diagram.
-
-### Example 2: Web dashboard training session
-
-1. Start server:
-
-```bash
-cd Baum-Welch-Algorithm
 python app.py
 ```
 
-2. Open `http://127.0.0.1:5000/`
-3. Enter sequence/configuration in the UI
-4. Watch live per-iteration updates (Socket.IO)
-5. Inspect final learned parameters and plots
+Open **http://127.0.0.1:5000/** in your browser. The dashboard lets you:
 
-### Example 3: Programmatic integration
+1. Enter an observation sequence (comma-separated integers, e.g. `0, 1, 1, 0, 2, 1, 0`)
+2. Set the number of hidden states ($N$)
+3. Configure max iterations and convergence tolerance
+4. Optionally provide initial parameters or use random initialization
+5. Click **Train** — watch the model learn in real time:
+   - Log-likelihood curve updates after each iteration
+   - Transition and emission heatmaps refresh live
+   - Animated state transition diagram shows particle flow proportional to transition probabilities
+6. Use the **fullscreen** button on the state diagram for a detailed view
+7. Export the diagram as PNG or SVG
 
-Use `HMMTrainer` directly in your own scripts or notebooks for custom workflows.
+### Run the Weather Example
+
+```bash
+python examples/weather_example.py
+```
+
+This script demonstrates the full pipeline:
+
+1. Defines a ground-truth 2-state weather HMM (Rainy/Sunny with Walk/Shop/Clean observations)
+2. Generates 1000 synthetic observations from the true model
+3. Trains a new HMM from random initialization using Baum-Welch
+4. Prints learned vs. true parameters for comparison
+5. Saves all visualizations to `examples/output/`:
+
+| Output File | Description |
+|---|---|
+| `convergence.svg` | Log-likelihood curve showing EM convergence |
+| `parameter_trajectory.svg` | How each parameter in $A$, $B$, $\pi$ evolved over iterations |
+| `heatmap_A.svg` | Learned transition matrix as a color-coded heatmap |
+| `heatmap_B.svg` | Learned emission matrix as a color-coded heatmap |
+| `state_diagram.svg` | Graphviz-rendered state transition diagram (requires Graphviz) |
+
+---
+
+## Programmatic Usage
+
+### Basic Training
 
 ```python
 import numpy as np
 from hmm_core.training.trainer import HMMTrainer
 
-observations = np.array([0, 1, 2, 1, 0, 2, 2, 1, 0], dtype=np.intp)
-trainer = HMMTrainer(n_states=3, n_obs_symbols=3, max_iterations=150, tolerance=1e-6, seed=7)
+# Integer-coded observation sequence (symbols in [0, M-1])
+observations = np.array([0, 1, 1, 0, 1, 2, 0, 1], dtype=np.intp)
+
+trainer = HMMTrainer(
+    n_states=2,         # Number of hidden states (N)
+    n_obs_symbols=3,    # Number of observation symbols (M)
+    max_iterations=200, # EM iteration cap
+    tolerance=1e-6,     # Convergence threshold on |ΔLL|
+    seed=42,            # Random seed for reproducibility
+)
 result = trainer.fit(observations)
 
 print("Converged:", result.converged)
 print("Iterations:", result.n_iterations)
-print("Final LL:", result.log_likelihood_history[-1])
+print("Final log-likelihood:", result.log_likelihood_history[-1])
+print("Transition matrix A:\n", result.model_params.A)
+print("Emission matrix B:\n", result.model_params.B)
+print("Initial distribution pi:", result.model_params.pi)
+```
+
+### Accessing Training History
+
+```python
+# Full log-likelihood history (one value per iteration)
+ll_history = result.log_likelihood_history  # list[float]
+
+# Parameter snapshots at each iteration
+param_history = result.parameter_history    # list[HMMParameters]
+
+# Check the model at iteration 10
+params_at_10 = param_history[10]
+print("A at iter 10:\n", params_at_10.A)
+print("B at iter 10:\n", params_at_10.B)
+```
+
+### Generating Visualizations Programmatically
+
+```python
+from hmm_visualization.training_plots import plot_log_likelihood
+from hmm_visualization.heatmaps import plot_heatmap
+from hmm_visualization.parameter_trajectory import plot_parameter_evolution
+from hmm_visualization.state_diagram import render_state_diagram
+
+# Convergence plot
+plot_log_likelihood(
+    result.log_likelihood_history,
+    title="My HMM — Convergence",
+    save_path="convergence.svg",
+    show=False,
+)
+
+# Heatmaps
+plot_heatmap(result.model_params.A, title="Transition Matrix A",
+             row_labels=["S0", "S1"], col_labels=["S0", "S1"],
+             save_path="heatmap_A.svg", show=False)
+
+plot_heatmap(result.model_params.B, title="Emission Matrix B",
+             row_labels=["S0", "S1"], col_labels=["O0", "O1", "O2"],
+             save_path="heatmap_B.svg", show=False)
+
+# Parameter evolution
+plot_parameter_evolution(result.parameter_history, save_path="trajectory.svg", show=False)
+
+# Graphviz state diagram (requires Graphviz system binary)
+render_state_diagram(result.model_params.A, state_labels=["S0", "S1"],
+                     save_path="diagram", fmt="svg")
+```
+
+### With a Per-Iteration Callback
+
+```python
+def on_iteration(update: dict) -> None:
+    print(f"  Iter {update['iteration']}: LL = {update['log_likelihood']:.6f}")
+
+result = trainer.fit(observations, on_iteration=on_iteration)
 ```
 
 ---
 
-## 5) Core API usage (programmatic)
+## Web Dashboard Guide
 
-Minimal training usage:
+The single-page dashboard at `http://127.0.0.1:5000/` combines all training and visualization features:
+
+### Input Panel
+
+- **Observation Sequence** — Comma-separated integers (e.g. `0, 1, 0, 2, 1`). Each integer represents a discrete observation symbol.
+- **Number of States** — The number of hidden states $N$ to learn.
+- **Max Iterations** — Upper bound on EM iterations (default: 200).
+- **Tolerance** — Convergence threshold; training stops when $|\Delta \text{LL}| < \text{tolerance}$ (default: $10^{-6}$).
+- **Initial Parameters** (optional) — Supply custom $A$, $B$, $\pi$ matrices as JSON, or leave blank for random Dirichlet initialization.
+
+### Live Training Display
+
+Once training starts, the dashboard updates in real time via WebSocket:
+
+- **Log-Likelihood Chart** — Plotly.js line chart that grows with each iteration. Should show monotonic increase converging to a plateau.
+- **Transition Matrix Heatmap** — Color-coded $N \times N$ matrix showing $a_{ij}$. Strong diagonal indicates "sticky" states.
+- **Emission Matrix Heatmap** — Color-coded $N \times M$ matrix showing $b_i(o)$. Distinct row patterns indicate well-separated states.
+- **State Transition Diagram** — Interactive D3.js diagram with:
+  - Animated particles flowing along edges proportional to transition probabilities
+  - Self-loop arcs for same-state transitions
+  - Edge thickness proportional to $a_{ij}$
+  - Drag nodes to rearrange layout
+  - Replay controls: play/pause, speed slider, step forward/back
+  - Fullscreen mode for detailed inspection
+  - Export as PNG or SVG
+
+### Training Summary
+
+After convergence (or reaching max iterations), a summary panel shows:
+
+- Whether the model converged
+- Total iterations run
+- Final log-likelihood value
+- Learned $A$, $B$, $\pi$ matrices
+
+---
+
+## API Reference
+
+### REST Endpoint
+
+#### `POST /api/train`
+
+Submit a training configuration and receive the fully trained model.
+
+**Request body** (JSON):
+
+```json
+{
+  "observations": [0, 1, 1, 0, 1, 2, 0, 1],
+  "n_states": 2,
+  "n_obs_symbols": 3,
+  "max_iterations": 200,
+  "tolerance": 1e-6,
+  "seed": 42
+}
+```
+
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `observations` | `int[]` | Yes | — | Integer-coded observation sequence (≥ 2 elements) |
+| `n_states` | `int` | Yes | — | Number of hidden states ($N \geq 1$) |
+| `n_obs_symbols` | `int` | Yes | — | Number of observation symbols ($M \geq 1$) |
+| `max_iterations` | `int` | No | 200 | EM iteration cap |
+| `tolerance` | `float` | No | 1e-6 | Convergence threshold |
+| `seed` | `int\|null` | No | null | Random seed for reproducibility |
+
+**Response** (200 OK):
+
+```json
+{
+  "model_id": "uuid-string",
+  "converged": true,
+  "n_iterations": 47,
+  "final_log_likelihood": -1234.567,
+  "A": [[0.7, 0.3], [0.4, 0.6]],
+  "B": [[0.1, 0.4, 0.5], [0.6, 0.3, 0.1]],
+  "pi": [0.6, 0.4],
+  "log_likelihood_history": [-2000.0, -1800.5, "..."],
+  "plots": { "convergence": "base64...", "heatmap_A": "base64..." }
+}
+```
+
+**Error responses:**
+
+| Status | Cause |
+|---|---|
+| 400 | Request body is not valid JSON |
+| 422 | Missing or invalid fields (details in `error` key) |
+| 500 | Training failure (numerical or runtime error) |
+
+### WebSocket Events
+
+Connect via Socket.IO to `http://127.0.0.1:5000/`.
+
+#### Client → Server
+
+| Event | Payload | Description |
+|---|---|---|
+| `start_training` | `{ observations, n_states, max_iterations, tolerance, init_params? }` | Begin streaming training. `observations` can be a list of ints or a comma-separated string. `init_params` is optional JSON with `A`, `B`, `pi`. |
+
+#### Server → Client
+
+| Event | Payload | Description |
+|---|---|---|
+| `training_update` | `{ iteration, log_likelihood, A, B, pi, converged }` | Emitted after each EM iteration with current parameters |
+| `training_complete` | `{ converged, n_iterations, final_log_likelihood }` | Emitted once when training finishes |
+| `training_error` | `{ error }` | Emitted if training fails; contains error message string |
+
+**Example (JavaScript):**
+
+```javascript
+const socket = io("http://127.0.0.1:5000");
+
+socket.emit("start_training", {
+  observations: [0, 1, 1, 0, 1, 2, 0, 1],
+  n_states: 2,
+  max_iterations: 100,
+  tolerance: 1e-6,
+});
+
+socket.on("training_update", (data) => {
+  console.log(`Iter ${data.iteration}: LL = ${data.log_likelihood}`);
+});
+
+socket.on("training_complete", (data) => {
+  console.log("Done!", data);
+});
+
+socket.on("training_error", (data) => {
+  console.error("Error:", data.error);
+});
+```
+
+---
+
+## Weather Example Walkthrough
+
+The `examples/weather_example.py` script implements the classic ["Umbrella World"](https://en.wikipedia.org/wiki/Hidden_Markov_model#Weather_guessing_game) HMM exercise:
+
+**Ground-truth model:**
+
+| | Rainy → Rainy | Rainy → Sunny |
+|---|---|---|
+| **Transition $A$** | 0.7 | 0.3 |
+
+| | Sunny → Rainy | Sunny → Sunny |
+|---|---|---|
+| | 0.4 | 0.6 |
+
+| | Walk | Shop | Clean |
+|---|---|---|---|
+| **Emission $B$ (Rainy)** | 0.1 | 0.4 | 0.5 |
+| **Emission $B$ (Sunny)** | 0.6 | 0.3 | 0.1 |
+
+**Initial distribution**: $\pi = [0.6, 0.4]$
+
+The script generates $T = 1000$ synthetic observations, then trains a new HMM from scratch using `HMMTrainer` with `seed=6`. After convergence, the learned parameters closely match the ground truth, demonstrating that Baum-Welch successfully recovers the hidden model structure from observations alone.
+
+**Running it:**
+
+```bash
+cd Baum-Welch-Algorithm
+python examples/weather_example.py
+```
+
+**Expected console output:**
+
+```text
+Generated 1000 observations from ground-truth Weather HMM.
+First 20 observations: [1, 2, 0, 1, ...]
+Training complete.
+  Converged:   True
+  Iterations:  78
+  Final LL:    -1028.123456
+============================================================
+  LEARNED HMM PARAMETERS (Weather Example)
+============================================================
+  Transition matrix A:
+     Rainy | 0.70xx  0.29xx
+     Sunny | 0.39xx  0.60xx
+  ...
+  All visualizations saved to: examples/output/
+```
+
+---
+
+## Theory Background
+
+The implementation follows standard HMM theory (see Rabiner 1989). A summary of the key formulations follows.
+
+### HMM Definition
+
+An HMM is parameterized by $\lambda = (A, B, \pi)$:
+
+| Symbol | Name | Definition |
+|---|---|---|
+| $Q = \{1, 2, \dots, N\}$ | Hidden states | The unobservable states of the system |
+| $\mathcal{O} = \{O_1, O_2, \dots, O_M\}$ | Observation symbols | The discrete outputs the system can emit |
+| $\pi_i = P(q_1 = i)$ | Initial distribution | Probability of starting in state $i$ |
+| $a_{ij} = P(q_{t+1}=j \mid q_t=i)$ | Transition probabilities | $N \times N$ row-stochastic matrix $A$ |
+| $b_i(o) = P(O_t=o \mid q_t=i)$ | Emission probabilities | $N \times M$ row-stochastic matrix $B$ |
+
+The three canonical HMM problems:
+
+1. **Evaluation** — Given $\lambda$ and observation sequence $O$, compute $P(O \mid \lambda)$. Solved by the forward algorithm.
+2. **Decoding** — Find the most likely hidden state sequence. Solved by the Viterbi algorithm (not implemented in this project).
+3. **Learning** — Find $\lambda$ that maximizes $P(O \mid \lambda)$. Solved by the Baum-Welch algorithm (this project's focus).
+
+### Forward Variables ($\alpha$)
+
+$$\alpha_t(i) = P(O_1, \dots, O_t,\; q_t=i \mid \lambda)$$
+
+- **Initialization**: $\alpha_1(i) = \pi_i \, b_i(O_1)$
+- **Recursion**: $\alpha_{t+1}(j) = \left(\sum_{i=1}^N \alpha_t(i)\,a_{ij}\right) b_j(O_{t+1})$
+- **Termination**: $P(O \mid \lambda) = \sum_{i=1}^N \alpha_T(i)$
+
+Implemented in `hmm_core/inference/components/alpha.py`.
+
+### Backward Variables ($\beta$)
+
+$$\beta_t(i) = P(O_{t+1}, \dots, O_T \mid q_t=i, \lambda)$$
+
+- **Initialization**: $\beta_T(i) = 1$
+- **Recursion**: $\beta_t(i) = \sum_{j=1}^N a_{ij}\,b_j(O_{t+1})\,\beta_{t+1}(j)$
+
+Implemented in `hmm_core/inference/components/beta.py`.
+
+### Responsibilities ($\gamma$ and $\xi$)
+
+$$\gamma_t(i) = P(q_t = i \mid O, \lambda) = \frac{\alpha_t(i)\,\beta_t(i)}{P(O \mid \lambda)}$$
+
+$$\xi_t(i,j) = P(q_t = i, q_{t+1} = j \mid O, \lambda) = \frac{\alpha_t(i)\,a_{ij}\,b_j(O_{t+1})\,\beta_{t+1}(j)}{P(O \mid \lambda)}$$
+
+The relationship: $\gamma_t(i) = \sum_{j=1}^N \xi_t(i,j)$.
+
+Implemented in `hmm_core/inference/responsibilities.py` with components in `gamma.py` and `xi.py`.
+
+### M-Step (Baum-Welch Re-estimation)
+
+$$\pi_i^{\text{new}} = \gamma_1(i)$$
+
+$$a_{ij}^{\text{new}} = \frac{\sum_{t=1}^{T-1} \xi_t(i,j)}{\sum_{t=1}^{T-1} \gamma_t(i)}$$
+
+$$b_i^{\text{new}}(o) = \frac{\sum_{t:\,O_t=o} \gamma_t(i)}{\sum_{t=1}^T \gamma_t(i)}$$
+
+Implemented in `hmm_core/optimization/baum_welch_step.py`.
+
+### The EM Loop
+
+Each iteration of the Baum-Welch algorithm:
+
+1. **E-step**: Run forward-backward, compute $\gamma$ and $\xi$ given current $\lambda$
+2. **M-step**: Normalize expected counts to get new $(A, B, \pi)$
+3. **Convergence check**: If $|\text{LL}_{\text{new}} - \text{LL}_{\text{old}}| < \varepsilon$, stop
+
+```text
+Initialize A, B, pi (random Dirichlet or user-supplied)
+repeat:
+    alpha, scales = forward(A, B, pi, O)
+    beta          = backward(A, B, O, scales)
+    gamma, xi     = responsibilities(alpha, beta, A, B, O)
+    A, B, pi      = m_step(gamma, xi, O)
+    ll_new        = log_likelihood(scales)
+until |ll_new - ll_old| < tolerance  or  iteration >= max_iterations
+```
+
+**Key guarantee**: The log-likelihood is monotonically non-decreasing at each iteration. Any decrease indicates a numerical bug.
+
+---
+
+## Numerical Stability
+
+Raw forward-backward probabilities underflow to zero for long sequences (products of many small numbers). This project uses **per-timestep scaling** (Rabiner's method):
+
+1. At each timestep $t$, normalize $\alpha_t$ to sum to 1, recording the scaling constant:
+
+$$c_t = \frac{1}{\sum_{i=1}^N \hat{\alpha}_t(i)}$$
+
+2. Work with scaled values $\hat{\alpha}_t(i) = c_t \cdot \alpha_t(i)$ throughout
+
+3. Apply the same scaling factors in the backward pass for consistency
+
+4. Recover the total log-likelihood without ever computing the raw probability:
+
+$$\log P(O \mid \lambda) = -\sum_{t=1}^T \log c_t$$
+
+This approach is implemented across `hmm_core/inference/scaling.py`, `alpha.py`, `beta.py`, and `forward_backward.py`.
+
+---
+
+## Math-to-Code Map
+
+| Mathematical Concept | Source Module | Key Function/Class |
+|---|---|---|
+| Forward $\alpha_t(i)$ | `hmm_core/inference/components/alpha.py` | `compute_alpha()` |
+| Backward $\beta_t(i)$ | `hmm_core/inference/components/beta.py` | `compute_beta()` |
+| State responsibility $\gamma_t(i)$ | `hmm_core/inference/components/gamma.py` | `compute_gamma()` |
+| Transition responsibility $\xi_t(i,j)$ | `hmm_core/inference/components/xi.py` | `compute_xi()` |
+| Combined $\gamma, \xi$ | `hmm_core/inference/responsibilities.py` | `compute_responsibilities()` |
+| Scaled forward-backward + log-likelihood | `hmm_core/inference/forward_backward.py` | `run_forward_backward()` |
+| Baum-Welch re-estimation ($A, B, \pi$) | `hmm_core/optimization/baum_welch_step.py` | `baum_welch_update()` |
+| Convergence check ($\|\Delta\text{LL}\| < \varepsilon$) | `hmm_core/optimization/convergence.py` | `check_convergence()` |
+| Full EM training loop | `hmm_core/training/trainer.py` | `HMMTrainer.fit()` |
+| Parameter container | `hmm_core/model/parameters.py` | `HMMParameters` |
+| Model wrapper | `hmm_core/model/hmm.py` | `HiddenMarkovModel` |
+| Random initialization | `hmm_core/initialization/random_init.py` | `random_hmm_parameters()` |
+| Row-stochastic normalization | `hmm_core/utils/normalization.py` | `normalize_rows()` |
+| Input validation | `hmm_core/utils/validation.py` | `validate_*()` |
+
+**Suggested reading order for learners:**
+
+1. Read the [Theory Background](#theory-background) section above
+2. `hmm_core/inference/components/alpha.py` → `beta.py` — understand the forward and backward passes
+3. `hmm_core/inference/responsibilities.py` — see how $\gamma$ and $\xi$ are derived
+4. `hmm_core/optimization/baum_welch_step.py` — the M-step that closes the EM loop
+5. `hmm_core/training/trainer.py` — the full training pipeline that ties everything together
+
+---
+
+## Data Preparation
+
+The Baum-Welch algorithm operates on **discrete observation symbols**. Your observations must be encoded as contiguous integers in $[0, M-1]$.
+
+### Encoding Steps
+
+1. **Build a vocabulary** from your raw data (e.g. categories, binned values, event types)
+2. **Map each unique value** to an integer starting at 0
+3. **Encode** the observation sequence as a NumPy integer array with `dtype=np.intp`
+4. **Set $M$** to the total number of unique symbols (i.e., `max(observations) + 1`)
+5. **Keep the reverse map** to interpret learned emission probabilities
+
+### Example
 
 ```python
 import numpy as np
-from hmm_core.training.trainer import HMMTrainer
 
-observations = np.array([0, 1, 1, 0, 1, 2, 0, 1], dtype=np.intp)
-trainer = HMMTrainer(
-    n_states=2,
-    n_obs_symbols=3,
-    max_iterations=200,
-    tolerance=1e-6,
-    seed=42,
-)
-result = trainer.fit(observations)
+# Raw categorical data
+raw = ["sunny", "cloudy", "rainy", "sunny", "cloudy"]
 
-print(result.converged)
-print(result.log_likelihood_history[-1])
-print(result.model_params.A)
-print(result.model_params.B)
-print(result.model_params.pi)
+# Build vocabulary
+vocab = {label: idx for idx, label in enumerate(sorted(set(raw)))}
+# {'cloudy': 0, 'rainy': 1, 'sunny': 2}
+
+# Encode
+observations = np.array([vocab[x] for x in raw], dtype=np.intp)
+# array([2, 0, 1, 2, 0])
+
+n_obs_symbols = len(vocab)  # M = 3
 ```
 
----
+### Common Pitfalls
 
-## 6) Web API and socket events
-
-### REST endpoint
-
-- `POST /api/train`
-  - accepts training config and observation sequence,
-  - returns trained model summary.
-
-### WebSocket events
-
-Client → Server:
-
-- `start_training`
-
-Server → Client:
-
-- `training_update`
-- `training_complete`
-- `training_error`
-
-This allows real-time convergence plotting in the dashboard.
+| Pitfall | Consequence | Fix |
+|---|---|---|
+| Non-contiguous labels (e.g. `[0, 2, 5]`) | Index-out-of-bounds in $B$ matrix | Re-map to contiguous `[0, 1, 2]` |
+| Negative indices | Array indexing errors | Ensure all values $\geq 0$ |
+| `n_obs_symbols` too small | Missing columns in $B$; crash or silent data loss | Set $M = \max(O) + 1$ |
+| Mixed types (floats + ints) | Unexpected rounding | Cast to `np.intp` explicitly |
+| Single observation ($T = 1$) | No transitions to learn | Need $T \geq 2$ |
 
 ---
 
-## 7) Visual outputs
+## Convergence and Model Selection
 
-The repository includes utilities for:
+### Tips for Successful Training
 
-- log-likelihood convergence curves,
-- parameter evolution over iterations,
-- matrix heatmaps for \(A\) and \(B\),
-- state transition diagrams.
+- **Multiple random restarts**: Run 5–20 seeds and keep the model with highest final log-likelihood. EM finds local optima, not global ones.
+- **Sufficient data**: Short sequences ($T < 50$) cause noisy parameter estimates. Use $T \geq 200$ when possible.
+- **Monitor monotonicity**: Log-likelihood must never decrease. If it does, there's a numerical bug.
+- **Tolerance range**: $10^{-6}$ to $10^{-8}$ works well in practice. Lower values give more precision at the cost of more iterations.
 
-These are useful both for debugging and for understanding EM behavior.
+### Choosing the Number of States ($N$)
+
+There is no closed-form solution for optimal $N$. Practical approaches:
+
+1. **Domain knowledge** — If you know there are 2 weather regimes (dry/wet), set $N = 2$
+2. **Incremental $N$** — Train with $N = 2, 3, 4, \dots$ and compare final log-likelihoods
+3. **Held-out validation** — Split data into train/test; evaluate test log-likelihood to detect overfitting
+4. **Examine learned parameters** — If two states have nearly identical emission distributions, $N$ is too high
+
+### Reading the Diagnostics
+
+| Plot | Healthy Pattern | Problematic Pattern |
+|---|---|---|
+| **Log-likelihood curve** | Monotonic increase, then smooth plateau | Oscillation, sudden drops, or no plateau |
+| **Transition heatmap ($A$)** | Strong diagonal = "sticky" states that persist | Uniform rows = no temporal structure learned |
+| **Emission heatmap ($B$)** | Clear row-wise peaks = states specialize in different symbols | Uniform rows = states are indistinguishable |
+| **Parameter trajectory** | Parameters stabilize after initial movement | Parameters keep oscillating = not converged |
 
 ---
 
-## 8) How to extract and use theory from HMM_v3.pdf
+## Practical Applications
 
-You asked for practical measures to take data from the PDF. The safest workflow is:
+| Domain | Hidden States | Observations | Use Case |
+|---|---|---|---|
+| **Weather modeling** | Atmospheric regimes (dry, wet) | Daily event types (walk, shop, clean) | Classic HMM teaching example |
+| **Finance** | Market conditions (bull, bear, sideways) | Discretized returns or indicator levels | Regime detection and switching models |
+| **User behavior analytics** | User intent states (browsing, comparing, buying) | Clickstream event types | Conversion funnel analysis |
+| **Predictive maintenance** | Machine health (normal, degrading, faulty) | Binned sensor readings | Failure prediction and scheduling |
+| **Healthcare** | Disease progression stages | Diagnosis codes, treatment events | Clinical pathway modeling |
+| **Natural language processing** | Part-of-speech tags, named entity categories | Word/token observations | Sequence labeling and structure discovery |
+| **Bioinformatics** | Gene regions (exon, intron, intergenic) | DNA base sequences | Gene finding and sequence annotation |
+| **Speech recognition** | Phoneme states | Acoustic feature vectors (after discretization) | Sub-word unit modeling |
 
-### 8.1 Keep the source immutable
+---
 
-- Keep `HMM_v3.pdf` as the canonical source in project root.
-- Write extracted/processed text to separate files (`HMM_v3_extracted.txt`).
-
-### 8.2 Use scripted extraction (already included)
-
-`_extract_pdf.py` currently:
-
-- reads `HMM_v3.pdf`,
-- extracts text page by page using `pypdf` (fallback to `PyPDF2`),
-- writes tagged output with `===== PAGE X =====` markers.
-
-Run it:
+## Testing
 
 ```bash
-cd Baum-Welch-Algorithm
-python _extract_pdf.py
-```
-
-### 8.3 Post-process quality checks
-
-After extraction, verify:
-
-- equation lines were not broken unexpectedly,
-- symbols (\(\alpha, \beta, \gamma, \xi\), subscripts, fractions) remained readable,
-- table structures and headers are preserved,
-- section order matches PDF.
-
-A practical routine:
-
-1. Compare random pages in PDF vs extracted text.
-2. Normalize spacing and hyphenation only (avoid semantic edits).
-3. Keep a “raw extract” and a “cleaned extract” separately.
-
-### 8.4 Build a theory dataset for documentation/code comments
-
-Create a structured notes file from extracted text with fields:
-
-- section title,
-- formula(s),
-- semantic interpretation,
-- implementation mapping (`module/function`).
-
-Example mapping in this project:
-
-- Forward recursion → `hmm_core/inference/components/alpha.py`
-- Backward recursion → `hmm_core/inference/components/beta.py`
-- Responsibilities \(\gamma,\xi\) → `hmm_core/inference/responsibilities.py`
-- M-step updates → `hmm_core/optimization/baum_welch_step.py`
-
-### 8.5 Version control recommendations
-
-- Commit extraction script and extracted text.
-- If PDF changes, regenerate extraction in a single commit.
-- Use commit messages like: `docs: refresh HMM_v3 extraction and update theory notes`.
-
-### 8.6 Optional improvements (recommended)
-
-If you want higher-fidelity math extraction, consider:
-
-- adding `pdfplumber` for layout-aware extraction,
-- preserving equation blocks separately,
-- storing formulas in a structured Markdown glossary.
-
----
-
-## 9) Practical convergence guidance
-
-For real datasets:
-
-- Start with multiple random seeds and compare final log-likelihood.
-- Use enough sequence length; very short sequences may overfit and oscillate.
-- Monitor monotonic likelihood growth; large drops indicate numerical/implementation issues.
-- Keep tolerance moderate (`1e-6` to `1e-8` depending on scale).
-
----
-
-## 10) Testing
-
-```bash
-cd Baum-Welch-Algorithm
+# Run all tests
 pytest
+
+# With coverage report
+pytest --cov=hmm_core --cov-report=term-missing
+
+# Run a specific test file
+pytest tests/test_baum_welch.py -v
 ```
 
-Tests cover core numerical routines and training behavior.
+### What the Tests Cover
+
+| Test File | Coverage |
+|---|---|
+| `test_forward_backward.py` | Forward/backward variable computation, scaling correctness, log-likelihood consistency |
+| `test_normalization.py` | Row-stochastic normalization edge cases (zeros, near-zeros, large values) |
+| `test_baum_welch.py` | M-step re-estimation formulas, parameter update correctness |
+| `test_training.py` | End-to-end training: convergence on known models, reproducibility with seeds, callback invocation |
 
 ---
 
-## 11) Deployment
-
-For hosted deployment steps, see `DEPLOYMENT.md`.
-
-`app.py` at root is prepared as an entry point for Gunicorn/Eventlet-based deployment (e.g., Zeabur).
-
----
-
-## 12) Final note
-
-This codebase is intentionally structured so that each mathematical concept from the Baum–Welch derivation has a clear implementation location. If you are reading this as a learner, follow this sequence:
-
-1. Theory section in this README,
-2. `hmm_core/inference` (forward/backward),
-3. `hmm_core/inference/responsibilities.py`,
-4. `hmm_core/optimization/baum_welch_step.py`,
-5. `hmm_core/training/trainer.py`.
-
-That path mirrors the EM derivation and makes the algorithm much easier to internalize.
-
----
-
-## 13) Full EM training procedure (step-by-step)
-
-The training loop implemented in this project follows the canonical EM structure for discrete HMMs.
-
-### 13.1 Inputs
-
-- Observation sequence \(O = (O_1, \dots, O_T)\), integer-encoded
-- Number of states \(N\)
-- Number of symbols \(M\)
-- Initial parameters \(\lambda^{(0)} = (A^{(0)}, B^{(0)}, \pi^{(0)})\)
-
-### 13.2 Iterative updates
-
-At iteration \(k\):
-
-1. Run forward recursion to obtain \(\alpha_t^{(k)}(i)\)
-2. Run backward recursion to obtain \(\beta_t^{(k)}(i)\)
-3. Compute responsibilities \(\gamma_t^{(k)}(i)\), \(\xi_t^{(k)}(i,j)\)
-4. Re-estimate parameters to get \(\lambda^{(k+1)}\)
-5. Compute log-likelihood improvement:
-
-\[
-\Delta \mathcal{L}^{(k)} = \log P(O\mid\lambda^{(k+1)}) - \log P(O\mid\lambda^{(k)})
-\]
-
-6. Stop if \(|\Delta \mathcal{L}^{(k)}| < \varepsilon\) or max iterations reached
-
-### 13.3 Pseudocode
-
-```text
-Initialize A, B, pi
-repeat:
-    alpha, scales = forward(A, B, pi, O)
-    beta         = backward(A, B, O, scales)
-    gamma, xi    = responsibilities(alpha, beta, A, B, O)
-    A, B, pi     = m_step(gamma, xi, O)
-    ll_new       = log_likelihood(scales)
-until convergence
-```
-
----
-
-## 14) Numerical stability and scaling
-
-For long sequences, raw forward/backward probabilities can underflow to zero. This project uses scaling in inference to maintain stable values.
-
-### 14.1 Why scaling is needed
-
-Forward values multiply many probabilities in \([0,1]\), so magnitude can decay as \(\mathcal{O}(c^T)\) for \(c<1\). Even when mathematically correct, floating-point representation becomes unreliable.
-
-### 14.2 Scaled forward-backward idea
-
-- Compute per-time normalization constants \(c_t\)
-- Normalize \(\alpha_t\) at each step
-- Reuse consistent scaling in backward pass
-- Compute total log-likelihood as:
-
-\[
-\log P(O\mid\lambda) = -\sum_{t=1}^{T}\log c_t
-\]
-
-This preserves relative structure while avoiding vanishing magnitudes.
-
----
-
-## 15) Math-to-code map (important for study)
-
-This is the practical bridge between the PDF theory and this codebase.
-
-### 15.1 Core recurrences
-
-- Forward \(\alpha\): `hmm_core/inference/components/alpha.py`
-- Backward \(\beta\): `hmm_core/inference/components/beta.py`
-- State occupancy \(\gamma\) and transition flow \(\xi\): `hmm_core/inference/responsibilities.py`
-- Scaled orchestration + log-likelihood: `hmm_core/inference/forward_backward.py`
-
-### 15.2 Parameter learning
-
-- Baum–Welch re-estimation formulas: `hmm_core/optimization/baum_welch_step.py`
-- Convergence criteria: `hmm_core/optimization/convergence.py`
-- Full EM loop and callback streaming: `hmm_core/training/trainer.py`
-
-### 15.3 Model and validation layer
-
-- Parameter container and shape-safe model wrapper:
-  - `hmm_core/model/parameters.py`
-  - `hmm_core/model/hmm.py`
-- Probability normalization and input checks:
-  - `hmm_core/utils/normalization.py`
-  - `hmm_core/utils/validation.py`
-
----
-
-## 16) Data preparation guide (before training)
-
-Baum–Welch in this project assumes **discrete symbols**. If your source data is text, events, or sensor categories, map each unique item to an integer in \([0, M-1]\).
-
-### 16.1 Recommended preprocessing steps
-
-1. Build vocabulary / category map
-2. Encode observations into contiguous integer IDs
-3. Validate all IDs are non-negative and within range
-4. Keep a reverse map for interpretation in outputs
-
-### 16.2 Common mistakes
-
-- Non-contiguous labels (e.g., 1, 5, 9) without remapping
-- Negative indices
-- Mixed-type arrays (`str` + `int`)
-- Declaring too-small \(M\) compared to actual max observation index
-
----
-
-## 17) Practical model selection strategy
-
-Since HMM training is non-convex, local optima are expected.
-
-### 17.1 Multi-seed protocol
-
-Run training with multiple random seeds and compare:
-
-- final log-likelihood,
-- convergence speed,
-- parameter interpretability.
-
-Keep the best run by likelihood (or by downstream metric if task-specific labels exist).
-
-### 17.2 Choosing number of hidden states
-
-Increase \(N\) gradually and monitor:
-
-- improvement in fit quality,
-- stability of learned transitions,
-- whether extra states are meaningfully distinct.
-
-When possible, compare held-out log-likelihood to avoid overfitting.
-
----
-
-## 18) Diagnostics and what they mean
-
-### 18.1 Log-likelihood curve
-
-- Healthy training: monotonic increase then flattening
-- Sudden oscillation or drop: possible numerical issue or invalid update
-- Very early plateau: initialization or model-capacity mismatch
-
-### 18.2 Transition heatmap (A)
-
-- Strong diagonal: sticky regimes (slow state switching)
-- Off-diagonal dominance: frequent alternation
-
-### 18.3 Emission heatmap (B)
-
-- Clear row-wise peaks: states specialize in distinct symbols
-- Uniform rows: states not well separated
-
----
-
-## 19) Advanced extraction measures for HMM_v3.pdf
-
-If you want a durable, research-grade extraction pipeline (not just quick text dump), use this workflow.
-
-### 19.1 3-layer extraction strategy
-
-1. **Raw extraction** (already implemented): page text as-is
-2. **Clean extraction**: fix spacing/hyphenation, preserve meaning
-3. **Structured theory index**: formulas + definitions + implementation pointers
-
-### 19.2 Suggested file set
-
-- `HMM_v3_extracted_raw.txt`
-- `HMM_v3_extracted_clean.txt`
-- `docs/theory_index.md`
-- `docs/formula_glossary.md`
-
-### 19.3 Formula preservation checks
-
-For each key formula block, manually verify against PDF:
-
-- \(\alpha\) initialization and recursion
-- \(\beta\) initialization and recursion
-- \(\gamma\), \(\xi\) definitions
-- re-estimation equations for \(A,B,\pi\)
-
-If plain extraction garbles equations, add one of:
-
-- page-level OCR fallback,
-- equation snippets inserted manually into glossary,
-- Markdown LaTeX blocks checked against source pages.
-
-### 19.4 Change-management policy
-
-When PDF is updated:
-
-1. Regenerate raw extraction
-2. Rebuild clean extraction
-3. Diff formula glossary
-4. Update README theory sections if needed
-5. Commit all in one documentation change set
-
----
-
-## 20) Troubleshooting (including local server start failures)
-
-### 20.1 `WinError 10048` / port already in use
-
-Cause: another process is bound to `5000`.
-
-Fix (PowerShell):
+## Troubleshooting
+
+| Problem | Cause | Solution |
+|---|---|---|
+| `WinError 10048` / "Address already in use" | Port 5000 is occupied by another process | Kill the process (see below), then restart |
+| Flask-SocketIO fails to start | Missing `eventlet` package | Run `pip install eventlet` |
+| WebSocket not connecting | Wrong worker class or multiple Gunicorn workers | Use `--worker-class eventlet -w 1` |
+| State diagrams don't render (Graphviz) | Graphviz system binary not installed | Install from [graphviz.org](https://graphviz.org/download/) and add to `PATH` |
+| `ModuleNotFoundError` | Running from wrong directory or not installed | Run from project root; ensure `pip install -e .` was done |
+| Heatmaps / plots not appearing | Matplotlib backend issue in server mode | The server uses `Agg` backend automatically; check logs for errors |
+| Training never converges | Tolerance too low or insufficient data | Increase `max_iterations`, raise `tolerance`, or use more observations |
+| 404 on `/` | Root directory misconfigured in deployment | Ensure Zeabur root directory is empty (repository root) |
+| Build fails on Zeabur | Incomplete `requirements.txt` | Verify all deps resolve locally with `pip install -r requirements.txt` |
+
+**Freeing port 5000 on Windows:**
 
 ```powershell
 Get-NetTCPConnection -LocalPort 5000 -ErrorAction SilentlyContinue |
   ForEach-Object { Stop-Process -Id $_.OwningProcess -Force -ErrorAction SilentlyContinue }
 ```
 
-Then restart service.
+**Freeing port 5000 on macOS/Linux:**
 
-### 20.2 Flask-SocketIO/eventlet startup issues
-
-- Ensure dependencies are installed in the active environment:
-  - `flask`
-  - `flask-socketio`
-  - `eventlet`
-- Prefer launching from the project root where imports resolve correctly.
-
-### 20.3 Diagram output missing
-
-If state-diagram rendering fails, install Graphviz system binaries and verify they are on `PATH`.
+```bash
+lsof -ti:5000 | xargs kill -9
+```
 
 ---
 
-## 21) Reproducibility checklist
+## Reproducibility Checklist
 
-To make runs reproducible and audit-friendly:
+When running experiments, record these details to ensure reproducible results:
 
-- Fix random seed in trainer initialization
-- Record \(N, M, T\), tolerance, and max iterations
-- Save final \((A,B,\pi)\) with timestamp
-- Save likelihood history and plots per run
-- Keep observation encoding map with the experiment
-
-This checklist is especially important when comparing model variants or reporting experimental results.
+- [ ] Random seed passed to `HMMTrainer(seed=...)`
+- [ ] Number of states $N$ and observation symbols $M$
+- [ ] Observation sequence length $T$ and the sequence itself (or its generation method)
+- [ ] Convergence tolerance and max iterations
+- [ ] Final $(A, B, \pi)$ matrices saved to file
+- [ ] Log-likelihood history saved for convergence analysis
+- [ ] All visualization plots saved with timestamps
+- [ ] Observation encoding/vocabulary map stored alongside results
 
 ---
+
+## Contributing
+
+Contributions are welcome. To get started:
+
+1. Fork the repository
+2. Create a feature branch: `git checkout -b feature/my-feature`
+3. Install dev dependencies: `pip install -e ".[dev]"`
+4. Make your changes and add tests
+5. Run the test suite: `pytest`
+6. Submit a pull request
+
+Please follow the existing code style: type hints on all function signatures, docstrings in NumPy/Sphinx format, and one module per mathematical concept.
+
+---
+
+## License
+
+MIT
 
