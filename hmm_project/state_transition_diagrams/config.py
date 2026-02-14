@@ -67,6 +67,9 @@ class DiagramConfig:
         Default output format (``svg``, ``png``, ``pdf``).
     particles_enabled : bool
         Enable particle-flow animation in the interactive diagram.
+    decongestion_enabled : bool
+        Enable de-congestion filtering for transition/emission edges in the
+        interactive diagram. When disabled, all edges are shown.
     animation_speed : float
         Playback speed multiplier for the interactive diagram.
     """
@@ -102,6 +105,7 @@ class DiagramConfig:
 
     # ── Interactive diagram settings ────────────────────────────── #
     particles_enabled: bool = True
+    decongestion_enabled: bool = False
     animation_speed: float = 1.0
 
     # ── Interactive diagram JS colour palette (richer) ──────────── #
@@ -146,6 +150,7 @@ class DiagramConfig:
                 "dark": self.start_text,
             },
             "particlesEnabled": self.particles_enabled,
+            "decongestionEnabled": self.decongestion_enabled,
             "animationSpeed": self.animation_speed,
             "fontFamily": self.font_family,
             "monoFontFamily": self.mono_font_family,

@@ -9,6 +9,7 @@ An open-source Python + JavaScript library for creating **interactive** and **st
 | Feature | Description |
 |---|---|
 | **Interactive D3.js diagram** | Animated 3-tier layout (Start → States → Observations) with particle flow, replay controls, and an inspector panel |
+| **Transition de-congestion toggle** | Switch between filtered mode (reduced clutter) and all-transitions mode (all edges visible with spread curvature) |
 | **Static Graphviz renderer** | Publication-quality SVG / PNG / PDF diagrams via Graphviz |
 | **Flask integration** | Drop-in Flask blueprint to serve the JS/CSS assets |
 | **Fully configurable** | Colours, fonts, layout, thresholds, and animation parameters via `DiagramConfig` |
@@ -60,6 +61,7 @@ cfg = DiagramConfig(
     title="Weather Model",
     background_color="#FFFFFF",
     font_family="Arial",
+    decongestion_enabled=False,  # OFF by default: show all transitions
     layout_engine="dot",      # try: circo, neato, fdp
     output_format="png",
     prob_threshold=0.05,
@@ -98,6 +100,8 @@ Create the diagram container and controls:
     <input id="timeline" class="std-timeline" type="range" min="0" max="0" value="0">
     <span id="iter-label" class="std-iter-label">No data</span>
     <button id="btn-particles" class="std-ctrl-btn active">✦</button>
+    <button id="btn-decongestion" class="std-ctrl-btn"
+            title="Filtered mode (ON): keeps top 2 emissions per hidden state + emissions >= 0.35; weaker lines are thinner/fainter; labels shown for stronger prominent emissions (> 0.08). All mode (OFF): shows all transitions with varied arc radius to reduce overlap.">⫶</button>
 </div>
 
 <div id="inspector" class="std-inspector mt-4"></div>
@@ -118,6 +122,7 @@ const diagram = new StateTransitionDiagram('#diagram-container', '#inspector', {
     obsColor: { fill: '#F9EBEA', stroke: '#E74C3C', dark: '#922B21' },
     piColor:  { fill: '#EBF5FB', stroke: '#3498DB', dark: '#1B4F72' },
     particlesEnabled: true,
+    decongestionEnabled: false,
     animationSpeed: 1,
 });
 
@@ -132,6 +137,7 @@ diagram.wireControls({
     timeline:    document.getElementById('timeline'),
     iterLabel:   document.getElementById('iter-label'),
     btnParticles: document.getElementById('btn-particles'),
+    btnDecongestion: document.getElementById('btn-decongestion'),
 });
 
 // Feed data (e.g., from a WebSocket or REST API)
@@ -193,6 +199,7 @@ Then in your Jinja template:
 | `layout_engine` | `str` | `circo` | Graphviz engine (`circo`, `dot`, `neato`, `fdp`) |
 | `output_format` | `str` | `svg` | Output format (`svg`, `png`, `pdf`) |
 | `particles_enabled` | `bool` | `True` | Enable particle animation |
+| `decongestion_enabled` | `bool` | `False` | Enable de-congestion filtering (when `False`, all transitions are shown) |
 | `animation_speed` | `float` | `1.0` | Playback speed multiplier |
 
 ### JavaScript Config Object
@@ -205,6 +212,7 @@ Pass as the third argument to `new StateTransitionDiagram(container, inspector, 
     obsColor:    { fill, stroke, dark },
     piColor:     { fill, stroke, dark },
     particlesEnabled: true,
+    decongestionEnabled: false,
     animationSpeed: 1,
     fontFamily: "'Inter', system-ui, sans-serif",
     monoFontFamily: "'JetBrains Mono', monospace",
@@ -225,6 +233,7 @@ Pass as the third argument to `new StateTransitionDiagram(container, inspector, 
 | `seekTo(index)` | Jump to a specific iteration |
 | `setSpeed(multiplier)` | Set playback speed |
 | `toggleParticles(on)` | Enable/disable particle animation |
+| `toggleDecongestion(on)` | Enable/disable de-congestion filtering mode |
 | `toggle3D()` | Toggle 3D perspective view |
 | `wireControls(elements)` | Connect DOM controls |
 | `reset()` | Clear all data and rebuild |

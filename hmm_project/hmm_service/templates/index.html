@@ -69,9 +69,9 @@
             left: 50%;
             transform: translateX(-50%);
             z-index: 100;
-            background: rgba(251, 251, 251, 0.05);
-            backdrop-filter: blur(10px) saturate(180%);
-            -webkit-backdrop-filter: blur(10px) saturate(180%);
+            background: rgba(251, 251, 251, 0.025);
+            backdrop-filter: blur(3px) saturate(200%);
+            -webkit-backdrop-filter: blur(3px) saturate(200%);
             border: 1px solid rgba(200, 198, 198, 0.2);
             border-radius: 9999px;
             padding: 12px 36px;
@@ -517,10 +517,12 @@
                         <option value="2">2×</option>
                         <option value="5">5×</option>
                     </select>
-                    <input id="hmm-timeline" class="hmm-timeline" type="range" min="0" max="0" value="0"
+                    <input id="hmm-timeline" class="hmm-timeline" type="range" min="0" max="0" value="0" step="1"
                         title="Iteration Timeline">
                     <span id="hmm-iter-label" class="hmm-iter-label">No data</span>
                     <button id="hmm-particles" class="hmm-ctrl-btn active" title="Toggle Particles">✦</button>
+                    <button id="hmm-decongestion" class="hmm-ctrl-btn" title="Transition display mode&#10;Filtered mode (ON):&#10;• Hidden→Observation keeps top 2 emissions per hidden state&#10;• Also keeps any emission with probability ≥ 0.35&#10;• Non-prominent emission lines are very faint and thinner&#10;• Emission labels show only for stronger prominent edges (> 0.08)&#10;All mode (OFF): shows all transitions with varied arc radius to reduce overlap"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="22 3 2 3 10 12 10 19 14 21 14 12 22 3"/></svg></button>
+                    <span id="hmm-decongestion-label" class="hmm-mode-label">All</span>
                     <button id="hmm-fullscreen" class="hmm-ctrl-btn" title="Fullscreen"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg></button>
                     <button id="hmm-save" class="hmm-ctrl-btn" title="Save Diagram as PNG"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></button>
                 </div>
@@ -1091,7 +1093,9 @@
                     prevLL = null;
                     evolutionData = {};
                     if (hmmDiagram) hmmDiagram.reset();
-                    hmmDiagram = new HMMDiagram('#state-diagram-container', '#hmm-inspector');
+                    hmmDiagram = new HMMDiagram('#state-diagram-container', '#hmm-inspector', {
+                        decongestionEnabled: true,
+                    });
                     hmmDiagram.wireControls({
                         btnFirst: document.getElementById('hmm-first'),
                         btnBack: document.getElementById('hmm-back'),
@@ -1102,6 +1106,8 @@
                         timeline: document.getElementById('hmm-timeline'),
                         iterLabel: document.getElementById('hmm-iter-label'),
                         btnParticles: document.getElementById('hmm-particles'),
+                        btnDecongestion: document.getElementById('hmm-decongestion'),
+                        decongestionLabel: document.getElementById('hmm-decongestion-label'),
                     });
                     lastData = null;
                     iterCount = 0;

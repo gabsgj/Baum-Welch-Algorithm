@@ -401,6 +401,19 @@ class HMMDiagram {
         const { A, B, pi } = this.history[idx];
         const N = this.N, M = this.M;
 
+        const prominentTransitions = Array.from({ length: N }, () => new Set());
+        for (let i = 0; i < N; i++) {
+            const ranked = [];
+            for (let j = 0; j < N; j++) {
+                if (i !== j) ranked.push({ j, v: A[i][j] });
+            }
+            ranked.sort((a, b) => b.v - a.v);
+            ranked.slice(0, 2).forEach(({ j }) => prominentTransitions[i].add(j));
+            ranked.forEach(({ j, v }) => {
+                if (v >= 0.35) prominentTransitions[i].add(j);
+            });
+        }
+
         // π
         for (let i = 0; i < N; i++) {
             const r = this._piA[i], v = pi[i];
@@ -419,14 +432,14 @@ class HMMDiagram {
                 r.label.text(v.toFixed(2));
             } else {
                 const r = this._trR[k]; if (!r) continue;
-                // Always show, just vary intensity
-                const opacity = Math.max(0.25, 0.2 + v * 0.7);
+                const isProminent = prominentTransitions[i].has(j);
+                const opacity = isProminent ? Math.max(0.22, 0.2 + v * 0.7) : 0.04;
+                const strokeWidth = isProminent ? (1 + v * 6) : 0.8;
                 r.path.transition().duration(180)
-                    .attr('stroke-width', 1 + v * 6)
+                    .attr('stroke-width', strokeWidth)
                     .attr('opacity', opacity);
 
-                // Only show label if v > 0.005
-                const showLbl = v > 0.005;
+                const showLbl = isProminent && v > 0.02;
                 r.label.text(v.toFixed(2)).attr('opacity', showLbl ? 1 : 0)
                     .attr('font-size', '11px').attr('font-weight', '700'); // Bigger font
                 r.bg.attr('opacity', showLbl ? 1 : 0);
@@ -456,8 +469,23 @@ class HMMDiagram {
     /* ═══════ PARTICLES ═══════ */
     _rebuildParticles(A) {
         this._clearParticles(); if (!this.particlesOn) return;
+        const prominentTransitions = Array.from({ length: this.N }, () => new Set());
+        for (let i = 0; i < this.N; i++) {
+            const ranked = [];
+            for (let j = 0; j < this.N; j++) {
+                if (i !== j) ranked.push({ j, v: A[i][j] });
+            }
+            ranked.sort((a, b) => b.v - a.v);
+            ranked.slice(0, 2).forEach(({ j }) => prominentTransitions[i].add(j));
+            ranked.forEach(({ j, v }) => {
+                if (v >= 0.35) prominentTransitions[i].add(j);
+            });
+        }
+
         for (let i = 0; i < this.N; i++) for (let j = 0; j < this.N; j++) {
-            if (i === j) continue; const v = A[i][j]; if (v < 0.02) continue;
+            if (i === j) continue;
+            const v = A[i][j];
+            if (!prominentTransitions[i].has(j) || v < 0.03) continue;
             const r = this._trR[`${i}-${j}`]; if (!r) continue;
             const c = STATE_COLORS[i % STATE_COLORS.length];
             const n = Math.max(1, Math.round(v * 3));

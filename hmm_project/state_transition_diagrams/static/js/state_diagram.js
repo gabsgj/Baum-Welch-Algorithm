@@ -53,6 +53,8 @@ const STD_DEFAULT_PI_COLOR   = { fill: '#F5F3FF', stroke: '#8B5CF6', dark: '#5B2
  * @param {Object}  [config.obsColor]         {fill, stroke, dark} for observation nodes.
  * @param {Object}  [config.piColor]          {fill, stroke, dark} for start node.
  * @param {boolean} [config.particlesEnabled] Enable particle animation (default: true).
+ * @param {boolean} [config.decongestionEnabled] Enable edge de-congestion filtering
+ *                                              (default: false).
  * @param {number}  [config.animationSpeed]   Playback speed multiplier (default: 1).
  * @param {string}  [config.fontFamily]       Primary font (default: Inter, system-ui, sans-serif).
  * @param {string}  [config.monoFontFamily]   Monospace font (default: JetBrains Mono, monospace).
@@ -72,6 +74,9 @@ class StateTransitionDiagram {
         this.history = []; this.currentIdx = -1;
         this.isPlaying = false; this.playTimer = null; this.playSpeed = cfg.animationSpeed || 1;
         this.particlesOn = cfg.particlesEnabled !== undefined ? cfg.particlesEnabled : true;
+        this.decongestionOn = cfg.decongestionEnabled !== undefined ? cfg.decongestionEnabled : false;
+        this.isScrubbing = false;
+        this.followLatest = true;
         this.built = false;
         this.particles = []; this.animFrame = null;
         this.svg = null; this.N = 0; this.M = 0; this._ctrl = null;
@@ -81,24 +86,51 @@ class StateTransitionDiagram {
     feedIteration(data) {
         this.history.push({ A: data.A, B: data.B, pi: data.pi, iteration: data.iteration, log_likelihood: data.log_likelihood });
         if (!this.built) { this._build(data.A, data.B, data.pi); this.built = true; }
-        if (!this.isPlaying || this.currentIdx === this.history.length - 2) {
+        if (!this.isScrubbing && this.followLatest) {
             this.currentIdx = this.history.length - 1; this._render(this.currentIdx);
         }
         this._updateControls();
     }
     onComplete() { this.pause(); this._updateControls(); }
-    seekTo(i) { if (i < 0 || i >= this.history.length) return; this.currentIdx = i; this._render(i); this._updateControls(); }
-    play() { if (!this.history.length) return; this.isPlaying = true; this._updateControls(); this._playStep(); }
+    seekTo(i) {
+        if (i < 0 || i >= this.history.length) return;
+        this.currentIdx = i;
+        this.followLatest = i >= this.history.length - 1;
+        this._render(i);
+        this._updateControls();
+    }
+    play() {
+        if (!this.history.length) return;
+        this.followLatest = true;
+        this.isPlaying = true;
+        this._updateControls();
+        this._playStep();
+    }
     pause() { this.isPlaying = false; if (this.playTimer) clearTimeout(this.playTimer); this.playTimer = null; this._updateControls(); }
     stepForward() { this.pause(); if (this.currentIdx < this.history.length - 1) { this.currentIdx++; this._render(this.currentIdx); } this._updateControls(); }
-    stepBack() { this.pause(); if (this.currentIdx > 0) { this.currentIdx--; this._render(this.currentIdx); } this._updateControls(); }
+    stepBack() {
+        this.pause();
+        if (this.currentIdx > 0) {
+            this.currentIdx--;
+            this.followLatest = false;
+            this._render(this.currentIdx);
+        }
+        this._updateControls();
+    }
     goFirst() { this.pause(); this.seekTo(0); }
-    goLast() { this.pause(); this.seekTo(this.history.length - 1); }
+    goLast() { this.pause(); this.followLatest = true; this.seekTo(this.history.length - 1); }
     setSpeed(s) { this.playSpeed = s; }
     toggleParticles(on) { this.particlesOn = on; if (!on) this._clearParticles(); }
+    toggleDecongestion(on) {
+        this.decongestionOn = typeof on === 'boolean' ? on : !this.decongestionOn;
+        if (this.currentIdx >= 0) this._render(this.currentIdx);
+        this._updateControls();
+    }
     toggle3D() { this.container.classList.toggle('view-3d'); }
     reset() {
         this.pause(); this.history = []; this.currentIdx = -1; this.built = false;
+        this.isScrubbing = false;
+        this.followLatest = true;
         this._clearParticles(); if (this.animFrame) cancelAnimationFrame(this.animFrame);
         if (this.container) { this.container.innerHTML = ''; this.container.style.height = ''; }
         this._updateControls();
@@ -199,7 +231,7 @@ class StateTransitionDiagram {
         const neededH_top = 50 + 18 + maxArcH + R + 60;
         const emissionGap = 140 + Math.max(0, N - 2) * 25;
         const neededH_bottom = R + 20 + emissionGap;
-        const H = Math.max(420, neededH_top + R * 2 + neededH_bottom);
+        const H = Math.max(390, neededH_top + R * 1.7 + neededH_bottom - 24);
 
         // Apply dynamic height to container
         this.container.style.height = H + 'px';
@@ -259,7 +291,9 @@ class StateTransitionDiagram {
         const obsX0 = (W - (M - 1) * obsGap) / 2;
         const obsW = Math.max(50, 80 - Math.max(0, M - 4) * 5);
         const obsH = Math.max(30, 40 - Math.max(0, M - 6) * 2);
-        const obsY = Math.max(stateY + R + emissionGap, H * 0.82);
+        const obsBottomPad = 18;
+        const obsYTarget = Math.max(stateY + R + emissionGap, H * 0.9);
+        const obsY = Math.min(obsYTarget, H - obsH / 2 - obsBottomPad);
         this._op = [];
         for (let k = 0; k < M; k++) this._op.push({ x: obsX0 + k * obsGap, y: obsY });
 
@@ -307,13 +341,19 @@ class StateTransitionDiagram {
                 .attr('fill', 'none').attr('stroke', PI_COLOR.stroke)
                 .attr('stroke-width', 1.2).attr('stroke-dasharray', '4 3')
                 .attr('marker-end', 'url(#ah-pi)').attr('opacity', 0.5);
+            const hit = this._piG.append('path').attr('d', d)
+                .attr('fill', 'none').attr('stroke', 'rgba(0,0,0,0)')
+                .attr('stroke-width', 5).style('pointer-events', 'stroke')
+                .attr('cursor', 'pointer');
             const lx = sx * 0.25 + mx * 0.5 + ex * 0.25, ly = sy * 0.25 + my * 0.5 + ey * 0.25 - 4;
             const label = this._piG.append('text').attr('x', lx).attr('y', ly)
                 .attr('text-anchor', 'middle').attr('font-size', piFontSize)
                 .attr('font-family', this.monoFont).attr('font-weight', '600')
                 .attr('fill', PI_COLOR.dark).text(`π=${pi[i].toFixed(2)}`);
-            this._piA.push({ path, label });
+            this._piA.push({ path, hit, label });
             path.on('mouseover', (ev) => this._showTip(ev, `π[${i}]`))
+                .on('mouseout', () => this._hideTip());
+            hit.on('mouseover', (ev) => this._showTip(ev, `π[${i}]`))
                 .on('mouseout', () => this._hideTip());
         }
 
@@ -353,6 +393,10 @@ class StateTransitionDiagram {
                     .attr('fill', 'none').attr('stroke', col.base)
                     .attr('stroke-width', emStroke).attr('opacity', 0.4)
                     .attr('stroke-dasharray', '4 3').attr('marker-end', 'url(#ah-em)');
+                const hit = this._emG.append('path').attr('d', d)
+                    .attr('fill', 'none').attr('stroke', 'rgba(0,0,0,0)')
+                    .attr('stroke-width', 5).style('pointer-events', 'stroke')
+                    .attr('cursor', 'pointer');
 
                 const lx = (sx + ex) / 2;
                 const ly = (sy + ey) / 2;
@@ -362,8 +406,13 @@ class StateTransitionDiagram {
                     .attr('font-family', this.monoFont).attr('font-weight', '600')
                     .attr('fill', col.dark).attr('opacity', 0).text('');
 
-                this._emR[`em-${i}-${k}`] = { path, label, sx, sy, c1x, c1y, c2x, c2y, ex, ey };
+                this._emR[`em-${i}-${k}`] = {
+                    path, hit, label, sx, sy, c1x, c1y, c2x, c2y, ex, ey,
+                    baseC1x: c1x, baseC1y: c1y, baseC2x: c2x, baseC2y: c2y
+                };
                 path.on('mouseover', (ev) => this._showTip(ev, `B[${i}][${k}]`))
+                    .on('mouseout', () => this._hideTip());
+                hit.on('mouseover', (ev) => this._showTip(ev, `B[${i}][${k}]`))
                     .on('mouseout', () => this._hideTip());
             }
         }
@@ -394,12 +443,18 @@ class StateTransitionDiagram {
                         .attr('fill', 'none').attr('stroke', col.base)
                         .attr('stroke-width', N > 6 ? 1.5 : 2).attr('opacity', 0.5)
                         .attr('marker-end', `url(#ah${i})`);
+                    const hit = this._edG.append('path').attr('d', dLoop)
+                        .attr('fill', 'none').attr('stroke', 'rgba(0,0,0,0)')
+                        .attr('stroke-width', 5).style('pointer-events', 'stroke')
+                        .attr('cursor', 'pointer');
 
                     const slLabelFontSize = N > 8 ? '8px' : N > 5 ? '9px' : '11px';
                     const label = this._edG.append('text').attr('x', sp.x).attr('y', sp.y - R - loopH)
                         .attr('text-anchor', 'middle').attr('font-size', slLabelFontSize)
                         .attr('font-weight', '600').attr('fill', col.dark).text('0.00');
-                    this._slR[key] = { path, label };
+                    this._slR[key] = { path, hit, label };
+                    hit.on('mouseover', (ev) => this._showTip(ev, `A[${i}][${j}]`))
+                        .on('mouseout', () => this._hideTip());
 
                 } else {
                     // Inter-state arc — forward (above) & reverse (below)
@@ -428,6 +483,10 @@ class StateTransitionDiagram {
                         .attr('fill', 'none').attr('stroke', col.base)
                         .attr('stroke-width', trStroke).attr('opacity', 0.35)
                         .attr('marker-end', `url(#ah${i})`);
+                    const hit = this._edG.append('path').attr('d', d)
+                        .attr('fill', 'none').attr('stroke', 'rgba(0,0,0,0)')
+                        .attr('stroke-width', 5).style('pointer-events', 'stroke')
+                        .attr('cursor', 'pointer');
 
                     const lx = 0.25 * sx + 0.5 * cx + 0.25 * ex;
                     const lyOff = i < j ? -5 : 5;
@@ -447,9 +506,16 @@ class StateTransitionDiagram {
                         .attr('font-family', this.monoFont)
                         .attr('fill', col.dark).attr('opacity', 0).text('');
 
-                    this._trR[key] = { path, label, bg, sx, sy, cx, cy, ex, ey };
+                    this._trR[key] = {
+                        path, hit, label, bg,
+                        sx, sy, cx, cy, ex, ey,
+                        baseCy: cy,
+                        yDir: i < j ? -1 : 1
+                    };
 
                     path.on('mouseover', (ev) => this._showTip(ev, `A[${i}][${j}]`))
+                        .on('mouseout', () => this._hideTip());
+                    hit.on('mouseover', (ev) => this._showTip(ev, `A[${i}][${j}]`))
                         .on('mouseout', () => this._hideTip());
                 }
             }
@@ -490,6 +556,45 @@ class StateTransitionDiagram {
         if (idx < 0 || idx >= this.history.length || !this.built) return;
         const { A, B, pi } = this.history[idx];
         const N = this.N, M = this.M;
+        const isFiltered = this.decongestionOn;
+
+        const prominentTransitions = Array.from({ length: N }, () => new Set());
+        const prominentEmissions = Array.from({ length: N }, () => new Set());
+        const transitionLanes = Array.from({ length: N }, () => ({}));
+        const emissionLanes = Array.from({ length: N }, () => ({}));
+        for (let i = 0; i < N; i++) {
+            const rankedTransitions = [];
+            for (let j = 0; j < N; j++) {
+                if (i !== j) rankedTransitions.push({ j, v: A[i][j] });
+            }
+            rankedTransitions.sort((a, b) => b.v - a.v);
+
+            if (isFiltered) {
+                rankedTransitions.slice(0, 2).forEach(({ j }) => prominentTransitions[i].add(j));
+                rankedTransitions.forEach(({ j, v }) => {
+                    if (v >= 0.35) prominentTransitions[i].add(j);
+                });
+            } else {
+                const upper = rankedTransitions.filter(({ j }) => i < j);
+                const lower = rankedTransitions.filter(({ j }) => i > j);
+                upper.forEach(({ j }, laneIdx) => { transitionLanes[i][j] = laneIdx; });
+                lower.forEach(({ j }, laneIdx) => { transitionLanes[i][j] = laneIdx; });
+            }
+
+            const rankedEmissions = [];
+            for (let k = 0; k < M; k++) rankedEmissions.push({ k, v: B[i][k] });
+            rankedEmissions.sort((a, b) => b.v - a.v);
+            if (isFiltered) {
+                rankedEmissions.slice(0, 2).forEach(({ k }) => prominentEmissions[i].add(k));
+                rankedEmissions.forEach(({ k, v }) => {
+                    if (v >= 0.35) prominentEmissions[i].add(k);
+                });
+            } else {
+                rankedEmissions.forEach(({ k }, laneIdx) => {
+                    emissionLanes[i][k] = laneIdx;
+                });
+            }
+        }
 
         // π
         for (let i = 0; i < N; i++) {
@@ -509,28 +614,69 @@ class StateTransitionDiagram {
                 r.label.text(v.toFixed(2));
             } else {
                 const r = this._trR[k]; if (!r) continue;
-                const opacity = Math.max(0.25, 0.2 + v * 0.7);
-                r.path.transition().duration(180)
-                    .attr('stroke-width', 1 + v * 6)
-                    .attr('opacity', opacity);
+                const laneIdx = transitionLanes[i][j] || 0;
+                const laneOffset = isFiltered ? 0 : laneIdx * 10;
+                const valueOffset = isFiltered ? 0 : (1 - v) * 18;
+                const dynamicCy = r.baseCy + r.yDir * (laneOffset + valueOffset);
+                const dynamicPath = `M${r.sx},${r.sy} Q${r.cx},${dynamicCy} ${r.ex},${r.ey}`;
+                const lyOff = r.yDir < 0 ? -5 : 5;
+                const ly = 0.25 * r.sy + 0.5 * dynamicCy + 0.25 * r.ey + lyOff;
 
-                const showLbl = v > 0.005;
-                r.label.text(v.toFixed(2)).attr('opacity', showLbl ? 1 : 0)
+                const isProminent = !isFiltered || prominentTransitions[i].has(j);
+                const opacity = isFiltered
+                    ? (isProminent ? Math.max(0.22, 0.2 + v * 0.7) : 0.04)
+                    : Math.max(0.16, 0.14 + v * 0.72);
+                const strokeWidth = isFiltered
+                    ? (isProminent ? (1 + v * 6) : 0.8)
+                    : (0.9 + v * 5);
+                r.path.transition().duration(180)
+                    .attr('d', dynamicPath)
+                    .attr('stroke-width', strokeWidth)
+                    .attr('opacity', opacity);
+                if (r.hit) r.hit.attr('d', dynamicPath);
+                r.cy = dynamicCy;
+
+                const showLbl = isFiltered ? (isProminent && v > 0.02) : (v > 0.08);
+                r.label.text(v.toFixed(2)).attr('x', r.cx).attr('y', ly).attr('opacity', showLbl ? 1 : 0)
                     .attr('font-size', '11px').attr('font-weight', '700');
-                r.bg.attr('opacity', showLbl ? 1 : 0);
+                r.bg.attr('x', r.cx - 15).attr('y', ly - 8).attr('opacity', showLbl ? 1 : 0);
             }
         }
 
         // Emissions — visible
         for (let i = 0; i < N; i++) for (let k = 0; k < M; k++) {
             const v = B[i][k], r = this._emR[`em-${i}-${k}`]; if (!r) continue;
-            const opacity = Math.max(0.4, 0.4 + v * 0.6);
-            r.path.transition().duration(180)
-                .attr('stroke-width', 1 + v * 5)
-                .attr('opacity', opacity);
+            const laneIdx = emissionLanes[i][k] || 0;
+            const laneOffset = isFiltered ? 0 : laneIdx * 8;
+            const strengthOffset = isFiltered ? 0 : (1 - v) * 14;
+            const dir = r.ex >= r.sx ? 1 : -1;
+            const spread = laneOffset + strengthOffset;
+            const dynamicC1x = isFiltered ? r.baseC1x : (r.baseC1x + dir * spread * 0.4);
+            const dynamicC2x = isFiltered ? r.baseC2x : (r.baseC2x + dir * spread * 0.9);
+            const dynamicC1y = isFiltered ? r.baseC1y : (r.baseC1y + spread * 0.55);
+            const dynamicC2y = isFiltered ? r.baseC2y : (r.baseC2y - spread * 0.15);
+            const dynamicPath = `M${r.sx},${r.sy} C${dynamicC1x},${dynamicC1y} ${dynamicC2x},${dynamicC2y} ${r.ex},${r.ey}`;
+            const lx = 0.125 * r.sx + 0.375 * dynamicC1x + 0.375 * dynamicC2x + 0.125 * r.ex;
+            const ly = 0.125 * r.sy + 0.375 * dynamicC1y + 0.375 * dynamicC2y + 0.125 * r.ey;
 
-            const showLbl = v > 0.03;
-            r.label.text(showLbl ? v.toFixed(2) : '').attr('opacity', showLbl ? 1 : 0)
+            r.c1x = dynamicC1x; r.c1y = dynamicC1y;
+            r.c2x = dynamicC2x; r.c2y = dynamicC2y;
+
+            const isProminent = !isFiltered || prominentEmissions[i].has(k);
+            const opacity = isFiltered
+                ? (isProminent ? Math.max(0.35, 0.35 + v * 0.6) : 0.03)
+                : Math.max(0.18, 0.2 + v * 0.55);
+            const strokeWidth = isFiltered
+                ? (isProminent ? (1 + v * 5) : 0.7)
+                : (0.8 + v * 4);
+            r.path.transition().duration(180)
+                .attr('d', dynamicPath)
+                .attr('stroke-width', strokeWidth)
+                .attr('opacity', opacity);
+            if (r.hit) r.hit.attr('d', dynamicPath);
+
+            const showLbl = isFiltered ? (isProminent && v > 0.08) : (v > 0.12);
+            r.label.text(showLbl ? v.toFixed(2) : '').attr('x', lx).attr('y', ly).attr('opacity', showLbl ? 1 : 0)
                 .attr('font-size', '11px').attr('font-weight', '700');
         }
 
@@ -542,8 +688,30 @@ class StateTransitionDiagram {
     _rebuildParticles(A) {
         this._clearParticles(); if (!this.particlesOn) return;
         const STATE_COLORS = this.STATE_COLORS;
+        const isFiltered = this.decongestionOn;
+        const prominentTransitions = Array.from({ length: this.N }, () => new Set());
+        if (isFiltered) {
+            for (let i = 0; i < this.N; i++) {
+                const ranked = [];
+                for (let j = 0; j < this.N; j++) {
+                    if (i !== j) ranked.push({ j, v: A[i][j] });
+                }
+                ranked.sort((a, b) => b.v - a.v);
+                ranked.slice(0, 2).forEach(({ j }) => prominentTransitions[i].add(j));
+                ranked.forEach(({ j, v }) => {
+                    if (v >= 0.35) prominentTransitions[i].add(j);
+                });
+            }
+        }
+
         for (let i = 0; i < this.N; i++) for (let j = 0; j < this.N; j++) {
-            if (i === j) continue; const v = A[i][j]; if (v < 0.02) continue;
+            if (i === j) continue;
+            const v = A[i][j];
+            if (isFiltered) {
+                if (!prominentTransitions[i].has(j) || v < 0.03) continue;
+            } else if (v < 0.02) {
+                continue;
+            }
             const r = this._trR[`${i}-${j}`]; if (!r) continue;
             const c = STATE_COLORS[i % STATE_COLORS.length];
             const n = Math.max(1, Math.round(v * 3));
@@ -653,13 +821,29 @@ class StateTransitionDiagram {
         c.btnForward?.addEventListener('click', () => this.stepForward());
         c.btnLast?.addEventListener('click', () => this.goLast());
         c.speedSelect?.addEventListener('change', e => this.setSpeed(parseFloat(e.target.value)));
-        c.timeline?.addEventListener('input', e => { this.pause(); this.seekTo(parseInt(e.target.value, 10)); });
+        const beginScrub = () => {
+            this.isScrubbing = true;
+            this.followLatest = false;
+            this.pause();
+        };
+        const endScrub = () => {
+            this.isScrubbing = false;
+        };
+        c.timeline?.addEventListener('pointerdown', beginScrub);
+        c.timeline?.addEventListener('mousedown', beginScrub);
+        c.timeline?.addEventListener('touchstart', beginScrub, { passive: true });
+        c.timeline?.addEventListener('input', e => { beginScrub(); this.seekTo(parseInt(e.target.value, 10)); });
+        c.timeline?.addEventListener('change', e => { endScrub(); this.seekTo(parseInt(e.target.value, 10)); });
+        c.timeline?.addEventListener('pointerup', endScrub);
+        window.addEventListener('mouseup', endScrub);
+        window.addEventListener('touchend', endScrub, { passive: true });
         c.btnParticles?.addEventListener('click', () => {
             this.particlesOn = !this.particlesOn;
             if (!this.particlesOn) this._clearParticles();
             else if (this.currentIdx >= 0) this._rebuildParticles(this.history[this.currentIdx].A);
             c.btnParticles.classList.toggle('active', this.particlesOn);
         });
+        c.btnDecongestion?.addEventListener('click', () => this.toggleDecongestion());
         c.btn3D?.addEventListener('click', () => {
             this.toggle3D();
             c.btn3D.classList.toggle('active');
@@ -673,6 +857,8 @@ class StateTransitionDiagram {
         if (c.btnForward) c.btnForward.disabled = i >= l - 1;
         if (c.btnLast) c.btnLast.disabled = i >= l - 1;
         if (c.btnPlay) { c.btnPlay.innerHTML = this.isPlaying ? '⏸' : '▶'; c.btnPlay.disabled = l === 0; }
+        if (c.btnDecongestion) c.btnDecongestion.classList.toggle('active', this.decongestionOn);
+        if (c.decongestionLabel) c.decongestionLabel.textContent = this.decongestionOn ? 'Filtered' : 'All';
         if (c.timeline) {
             c.timeline.max = Math.max(0, l - 1); c.timeline.value = Math.max(0, i);
             c.timeline.style.setProperty('--progress', l > 1 ? (i / (l - 1)) * 100 + '%' : '0%');

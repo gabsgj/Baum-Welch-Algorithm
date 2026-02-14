@@ -194,6 +194,16 @@
     text-align: center;
 }
 
+.std-mode-label,
+.hmm-mode-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: #64748b;
+    white-space: nowrap;
+    min-width: 42px;
+    text-align: left;
+}
+
 /* ── Inspector panel ── */
 .std-inspector,
 .hmm-inspector {
