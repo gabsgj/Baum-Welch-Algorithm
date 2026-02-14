@@ -256,6 +256,52 @@ Pass as the third argument to `new StateTransitionDiagram(container, inspector, 
 
 ---
 
+## Demo App
+
+A fully self-contained Flask demo application is included.  It exercises **every** public API method of both the Python and JavaScript sides of the library.
+
+### Running the Demo
+
+```bash
+cd state_transition_diagrams
+pip install -e ".[all]"
+python -m demo.app
+# Open http://127.0.0.1:5050
+```
+
+### What the demo covers
+
+| Area | Features exercised |
+|---|---|
+| **Interactive diagram** | `feedIteration()`, `onComplete()`, `play()`, `pause()`, `stepForward()`, `stepBack()`, `goFirst()`, `goLast()`, `seekTo()`, `setSpeed()`, `toggleParticles()`, `toggleDecongestion()`, `toggle3D()`, `wireControls()`, `reset()` |
+| **Export** | `saveSVG()`, `savePNG()` (client-side) |
+| **Static render** | `render_state_diagram()` via `/api/render_static` (server-side Graphviz) |
+| **Flask blueprint** | `create_blueprint()` — assets served at `/std/css/…` and `/std/js/…` |
+| **Config** | `DiagramConfig` defaults, `to_js_config()`, `/api/config` endpoint |
+| **Inspector** | Click any state node to expand the inspector panel |
+| **Fullscreen** | Fullscreen button & `_handleFullscreenChange()` |
+| **Backward compat** | `HMMDiagram` alias verified in-browser |
+
+---
+
+## Running Tests
+
+```bash
+cd state_transition_diagrams
+pip install -e ".[dev,all]"
+pytest tests/ -v
+```
+
+The test suite covers:
+
+* `test_package.py` — Package imports, `__version__`, `__all__`, dataclass behaviour
+* `test_config.py` — All `DiagramConfig` defaults, overrides, `to_js_config()` output
+* `test_renderer.py` — Graphviz rendering, formats, save-to-file, edge cases (requires `graphviz`)
+* `test_flask_blueprint.py` — Blueprint registration, static file serving, JS/CSS content verification
+* `test_demo_app.py` — Demo app endpoints, simulation, config API, render API
+
+---
+
 ## Project Structure
 
 ```
@@ -264,25 +310,36 @@ state_transition_diagrams/
 ├── config.py                # DiagramConfig dataclass
 ├── renderer.py              # Graphviz static renderer
 ├── flask_blueprint.py       # Flask blueprint for serving assets
-├── pyproject.toml           # Package metadata
+├── pyproject.toml           # Package metadata & dependencies
 ├── LICENSE                  # MIT License
 ├── README.md                # This file
-└── static/
-    ├── css/
-    │   └── state_diagram.css
-    └── js/
-        └── state_diagram.js
+├── CONTRIBUTING.md          # Contributor guide
+├── CHANGELOG.md             # Version history
+├── static/
+│   ├── css/
+│   │   └── state_diagram.css
+│   └── js/
+│       └── state_diagram.js
+├── demo/                    # Standalone demo application
+│   ├── __init__.py
+│   ├── __main__.py
+│   ├── app.py               # Flask app (all endpoints)
+│   └── templates/
+│       └── demo.html         # Full-featured demo UI
+└── tests/                   # Comprehensive test suite
+    ├── __init__.py
+    ├── test_package.py
+    ├── test_config.py
+    ├── test_renderer.py
+    ├── test_flask_blueprint.py
+    └── test_demo_app.py
 ```
 
 ---
 
 ## Contributing
 
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/my-feature`)
-3. Commit your changes
-4. Push to the branch
-5. Open a Pull Request
+See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
 
 ---
 

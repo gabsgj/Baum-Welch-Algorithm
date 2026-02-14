@@ -55,6 +55,10 @@ dev = [
     "pytest>=7.0",
     "pytest-cov>=4.0",
 ]
+demo = [
+    "flask>=3.0",
+    "numpy>=1.24",
+]
 
 [project.urls]
 Homepage = "https://github.com/your-org/state-transition-diagrams"
@@ -63,6 +67,7 @@ Issues = "https://github.com/your-org/state-transition-diagrams/issues"
 
 [tool.setuptools.packages.find]
 include = ["state_transition_diagrams*"]
+exclude = ["demo*", "tests*"]
 
 [tool.setuptools.package-data]
 state_transition_diagrams = ["static/**/*"]

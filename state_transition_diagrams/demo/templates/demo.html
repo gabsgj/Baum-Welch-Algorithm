@@ -1,0 +1,642 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>State Transition Diagrams — Interactive Demo</title>
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+    <!-- Library CSS (served by the Flask blueprint) -->
+    <link rel="stylesheet" href="/std/css/state_diagram.css">
+
+    <style>
+        *, *::before, *::after { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            font-family: 'Inter', system-ui, sans-serif;
+            background: #f1f5f9;
+            color: #1e293b;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 24px 16px;
+        }
+
+        /* ── Header ── */
+        header {
+            text-align: center;
+            padding: 32px 0 16px;
+        }
+        header h1 {
+            font-size: 28px;
+            font-weight: 700;
+            margin: 0;
+            background: linear-gradient(135deg, #7c3aed, #3b82f6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        header p {
+            color: #64748b;
+            font-size: 14px;
+            margin-top: 6px;
+        }
+
+        /* ── Card ── */
+        .card {
+            background: #fff;
+            border-radius: 12px;
+            border: 1px solid #e2e8f0;
+            padding: 24px;
+            margin-bottom: 24px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+        }
+        .card h2 {
+            font-size: 18px;
+            font-weight: 700;
+            margin: 0 0 16px;
+            color: #1e293b;
+        }
+        .card h3 {
+            font-size: 14px;
+            font-weight: 600;
+            margin: 16px 0 8px;
+            color: #475569;
+        }
+
+        /* ── Form ── */
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+        .form-group label {
+            display: block;
+            font-size: 12px;
+            font-weight: 600;
+            color: #64748b;
+            margin-bottom: 4px;
+        }
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 8px 10px;
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+            font-size: 13px;
+            font-family: 'JetBrains Mono', monospace;
+            background: #fff;
+            color: #1e293b;
+            transition: border-color 0.15s;
+        }
+        .form-group input:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: #7c3aed;
+            box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.12);
+        }
+
+        /* ── Buttons ── */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 9px 18px;
+            border: none;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #7c3aed, #6d28d9);
+            color: #fff;
+        }
+        .btn-primary:hover { opacity: 0.9; }
+        .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+        .btn-secondary {
+            background: #f1f5f9;
+            color: #334155;
+            border: 1px solid #cbd5e1;
+        }
+        .btn-secondary:hover { background: #e2e8f0; }
+        .btn-secondary:disabled { opacity: 0.45; cursor: not-allowed; }
+
+        .btn-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 12px;
+        }
+
+        /* ── Status ── */
+        #status {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 12px;
+            color: #64748b;
+            margin-top: 12px;
+            min-height: 18px;
+        }
+
+        /* ── Diagram Card (with fullscreen support) ── */
+        #diagram-card {
+            position: relative;
+        }
+
+        /* ── Log area ── */
+        .log-area {
+            max-height: 200px;
+            overflow-y: auto;
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 12px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+            color: #475569;
+            line-height: 1.6;
+        }
+
+        /* ── Feature List ── */
+        .feature-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+            gap: 8px;
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        .feature-list li {
+            display: flex;
+            align-items: flex-start;
+            gap: 8px;
+            font-size: 13px;
+            color: #334155;
+        }
+        .feature-list li::before {
+            content: "✓";
+            color: #10b981;
+            font-weight: 700;
+            flex-shrink: 0;
+        }
+
+        /* ── Responsive ── */
+        @media (max-width: 640px) {
+            .form-grid { grid-template-columns: 1fr 1fr; }
+            .btn-group { flex-direction: column; }
+            .feature-list { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+
+    <!-- ════════════════════ HEADER ════════════════════ -->
+    <header>
+        <h1>✦ State Transition Diagrams</h1>
+        <p>Interactive and static state transition diagram library — Demo App</p>
+    </header>
+
+    <!-- ════════════════════ FEATURES ════════════════════ -->
+    <div class="card">
+        <h2>Library Features Demonstrated</h2>
+        <ul class="feature-list">
+            <li>feedIteration() — push iteration data</li>
+            <li>onComplete() — signal training done</li>
+            <li>play() / pause() — auto-playback</li>
+            <li>stepForward() / stepBack()</li>
+            <li>goFirst() / goLast()</li>
+            <li>seekTo(index) — jump to iteration</li>
+            <li>setSpeed(multiplier)</li>
+            <li>toggleParticles(on)</li>
+            <li>toggleDecongestion(on)</li>
+            <li>toggle3D()</li>
+            <li>saveSVG() — export as SVG</li>
+            <li>savePNG() — export as PNG</li>
+            <li>wireControls(elements)</li>
+            <li>reset() — clear &amp; rebuild</li>
+            <li>DiagramConfig.to_js_config()</li>
+            <li>render_state_diagram() — Graphviz static</li>
+            <li>create_blueprint() — Flask integration</li>
+            <li>Inspector panel (click a state node)</li>
+            <li>Fullscreen mode</li>
+            <li>HMMDiagram backward-compat alias</li>
+        </ul>
+    </div>
+
+    <!-- ════════════════════ CONFIG ════════════════════ -->
+    <div class="card">
+        <h2>1. Configure Simulation</h2>
+        <div class="form-grid">
+            <div class="form-group">
+                <label for="n-states">Hidden States</label>
+                <input type="number" id="n-states" value="3" min="2" max="12">
+            </div>
+            <div class="form-group">
+                <label for="n-obs">Observations</label>
+                <input type="number" id="n-obs" value="4" min="2" max="12">
+            </div>
+            <div class="form-group">
+                <label for="n-iter">Iterations</label>
+                <input type="number" id="n-iter" value="30" min="1" max="200">
+            </div>
+            <div class="form-group">
+                <label for="seed">Seed (optional)</label>
+                <input type="number" id="seed" placeholder="random">
+            </div>
+            <div class="form-group">
+                <label for="play-mode">Feed Mode</label>
+                <select id="play-mode">
+                    <option value="stream">Stream (animated)</option>
+                    <option value="bulk">Bulk (all at once)</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="init-decongestion">Initial Mode</label>
+                <select id="init-decongestion">
+                    <option value="all">All transitions</option>
+                    <option value="filtered">Filtered (de-congestion)</option>
+                </select>
+            </div>
+        </div>
+        <div class="btn-group">
+            <button id="btn-run" class="btn btn-primary">▶ Run Simulation</button>
+            <button id="btn-reset" class="btn btn-secondary" disabled>↺ Reset</button>
+        </div>
+        <div id="status"></div>
+    </div>
+
+    <!-- ════════════════════ INTERACTIVE DIAGRAM ════════════════════ -->
+    <div class="card" id="diagram-card">
+        <h2>2. Interactive Diagram</h2>
+        <p style="font-size:12px;color:#64748b;margin-bottom:12px;">
+            Click any <strong>state circle</strong> to open the inspector. Use the controls below or press keys:<br>
+            <kbd style="background:#f1f5f9;border:1px solid #e2e8f0;border-radius:4px;padding:1px 5px;font-size:11px;">Space</kbd> play/pause &nbsp;
+            <kbd style="background:#f1f5f9;border:1px solid #e2e8f0;border-radius:4px;padding:1px 5px;font-size:11px;">←</kbd><kbd style="background:#f1f5f9;border:1px solid #e2e8f0;border-radius:4px;padding:1px 5px;font-size:11px;">→</kbd> step &nbsp;
+            <kbd style="background:#f1f5f9;border:1px solid #e2e8f0;border-radius:4px;padding:1px 5px;font-size:11px;">Home</kbd><kbd style="background:#f1f5f9;border:1px solid #e2e8f0;border-radius:4px;padding:1px 5px;font-size:11px;">End</kbd> jump
+        </p>
+
+        <!-- Diagram Canvas -->
+        <div id="diagram-container" class="std-canvas"></div>
+
+        <!-- Replay Controls -->
+        <div class="std-controls mt-4" style="margin-top:16px;">
+            <button id="ctl-first" class="std-ctrl-btn" title="First" disabled>⏮</button>
+            <button id="ctl-back" class="std-ctrl-btn" title="Step Back" disabled>⏪</button>
+            <button id="ctl-play" class="std-ctrl-btn" title="Play / Pause" disabled>▶</button>
+            <button id="ctl-fwd" class="std-ctrl-btn" title="Step Forward" disabled>⏩</button>
+            <button id="ctl-last" class="std-ctrl-btn" title="Last" disabled>⏭</button>
+            <select id="ctl-speed" class="std-speed-select" title="Playback Speed">
+                <option value="0.25">0.25×</option>
+                <option value="0.5">0.5×</option>
+                <option value="1" selected>1×</option>
+                <option value="2">2×</option>
+                <option value="5">5×</option>
+                <option value="10">10×</option>
+            </select>
+            <input id="ctl-timeline" class="std-timeline" type="range" min="0" max="0" value="0" step="1" title="Timeline">
+            <span id="ctl-iter" class="std-iter-label">No data</span>
+            <button id="ctl-particles" class="std-ctrl-btn active" title="Toggle Particles">✦</button>
+            <button id="ctl-decongestion" class="std-ctrl-btn" title="Toggle de-congestion filter">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="22 3 2 3 10 12 10 19 14 21 14 12 22 3"/></svg>
+            </button>
+            <span id="ctl-decongestion-label" class="std-mode-label">All</span>
+            <button id="ctl-3d" class="std-ctrl-btn" title="Toggle 3D View">3D</button>
+            <button id="ctl-fullscreen" class="std-ctrl-btn" title="Fullscreen">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg>
+            </button>
+        </div>
+
+        <!-- Inspector Panel -->
+        <div id="inspector" class="std-inspector" style="margin-top:16px;"></div>
+    </div>
+
+    <!-- ════════════════════ PROGRAMMATIC API TESTS ════════════════════ -->
+    <div class="card">
+        <h2>3. Programmatic API Controls</h2>
+        <p style="font-size:12px;color:#64748b;margin-bottom:12px;">
+            Test individual API methods directly. Each button calls the corresponding JS function.
+        </p>
+        <div class="btn-group">
+            <button class="btn btn-secondary" onclick="apiTest('play')">play()</button>
+            <button class="btn btn-secondary" onclick="apiTest('pause')">pause()</button>
+            <button class="btn btn-secondary" onclick="apiTest('stepForward')">stepForward()</button>
+            <button class="btn btn-secondary" onclick="apiTest('stepBack')">stepBack()</button>
+            <button class="btn btn-secondary" onclick="apiTest('goFirst')">goFirst()</button>
+            <button class="btn btn-secondary" onclick="apiTest('goLast')">goLast()</button>
+            <button class="btn btn-secondary" onclick="apiTest('seekTo')">seekTo(5)</button>
+            <button class="btn btn-secondary" onclick="apiTest('setSpeed')">setSpeed(3)</button>
+            <button class="btn btn-secondary" onclick="apiTest('toggleParticles')">toggleParticles()</button>
+            <button class="btn btn-secondary" onclick="apiTest('toggleDecongestion')">toggleDecongestion()</button>
+            <button class="btn btn-secondary" onclick="apiTest('toggle3D')">toggle3D()</button>
+            <button class="btn btn-secondary" onclick="apiTest('saveSVG')">saveSVG()</button>
+            <button class="btn btn-secondary" onclick="apiTest('savePNG')">savePNG()</button>
+            <button class="btn btn-secondary" onclick="apiTest('reset')">reset()</button>
+        </div>
+        <h3>HMMDiagram Backward-Compatibility Alias</h3>
+        <div class="btn-group">
+            <button class="btn btn-secondary" onclick="testAlias()">Verify HMMDiagram === StateTransitionDiagram</button>
+        </div>
+        <h3>API Call Log</h3>
+        <div id="api-log" class="log-area">Ready.\n</div>
+    </div>
+
+    <!-- ════════════════════ EXPORT ════════════════════ -->
+    <div class="card">
+        <h2>4. Export &amp; Static Rendering</h2>
+        <p style="font-size:12px;color:#64748b;margin-bottom:12px;">
+            Download the current interactive diagram as SVG/PNG, or request a server-side Graphviz render.
+        </p>
+        <div class="btn-group">
+            <button id="btn-save-svg" class="btn btn-secondary" disabled>⬇ Save SVG (client)</button>
+            <button id="btn-save-png" class="btn btn-secondary" disabled>⬇ Save PNG (client)</button>
+            <button id="btn-graphviz-svg" class="btn btn-secondary">⬇ Graphviz SVG (server)</button>
+            <button id="btn-graphviz-png" class="btn btn-secondary">⬇ Graphviz PNG (server)</button>
+        </div>
+    </div>
+
+    <!-- ════════════════════ CONFIG INSPECTOR ════════════════════ -->
+    <div class="card">
+        <h2>5. DiagramConfig Inspector</h2>
+        <p style="font-size:12px;color:#64748b;margin-bottom:8px;">
+            Live view of the <code>DiagramConfig</code> defaults returned by <code>/api/config</code>.
+        </p>
+        <button id="btn-load-config" class="btn btn-secondary" style="margin-bottom:12px;">Load Config from Server</button>
+        <pre id="config-output" class="log-area" style="white-space:pre-wrap;">Click "Load Config" to fetch.</pre>
+    </div>
+
+</div><!-- /.container -->
+
+
+<!-- ═══════════════════════════════════════════════════════════
+     SCRIPTS
+     ═══════════════════════════════════════════════════════════ -->
+<script src="https://d3js.org/d3.v7.min.js"></script>
+
+<!-- Library JS (served by the Flask blueprint) -->
+<script src="/std/js/state_diagram.js"></script>
+
+<!-- Injected config from DiagramConfig.to_js_config() -->
+<script>const STD_SERVER_CONFIG = {{ js_config | safe }};</script>
+
+<script>
+(function () {
+    'use strict';
+
+    /* ─── State ─── */
+    let diagram = null;
+    let iterations = [];
+    let streamTimer = null;
+    let streamIdx = 0;
+
+    /* ─── DOM refs ─── */
+    const btnRun = document.getElementById('btn-run');
+    const btnReset = document.getElementById('btn-reset');
+    const statusEl = document.getElementById('status');
+    const logEl = document.getElementById('api-log');
+
+    /* ─── Helpers ─── */
+    function log(msg) {
+        const ts = new Date().toLocaleTimeString();
+        logEl.textContent += `[${ts}] ${msg}\n`;
+        logEl.scrollTop = logEl.scrollHeight;
+    }
+
+    function setStatus(text) { statusEl.textContent = text; }
+
+    function buildDiagram() {
+        const decong = document.getElementById('init-decongestion').value === 'filtered';
+        const config = Object.assign({}, STD_SERVER_CONFIG, { decongestionEnabled: decong });
+        diagram = new StateTransitionDiagram('#diagram-container', '#inspector', config);
+        diagram.wireControls({
+            btnFirst:          document.getElementById('ctl-first'),
+            btnBack:           document.getElementById('ctl-back'),
+            btnPlay:           document.getElementById('ctl-play'),
+            btnForward:        document.getElementById('ctl-fwd'),
+            btnLast:           document.getElementById('ctl-last'),
+            speedSelect:       document.getElementById('ctl-speed'),
+            timeline:          document.getElementById('ctl-timeline'),
+            iterLabel:         document.getElementById('ctl-iter'),
+            btnParticles:      document.getElementById('ctl-particles'),
+            btnDecongestion:   document.getElementById('ctl-decongestion'),
+            decongestionLabel: document.getElementById('ctl-decongestion-label'),
+            btn3D:             document.getElementById('ctl-3d'),
+        });
+        log('Diagram created & controls wired');
+    }
+
+    /* ─── Run Simulation ─── */
+    btnRun.addEventListener('click', async function () {
+        btnRun.disabled = true;
+        btnReset.disabled = true;
+        setStatus('Requesting simulation…');
+
+        // Reset previous
+        if (diagram) { diagram.reset(); diagram = null; }
+        iterations = [];
+        streamIdx = 0;
+        if (streamTimer) { clearInterval(streamTimer); streamTimer = null; }
+
+        const body = {
+            n_states: parseInt(document.getElementById('n-states').value, 10),
+            n_observations: parseInt(document.getElementById('n-obs').value, 10),
+            n_iterations: parseInt(document.getElementById('n-iter').value, 10),
+        };
+        const seedVal = document.getElementById('seed').value.trim();
+        if (seedVal) body.seed = parseInt(seedVal, 10);
+
+        try {
+            const res = await fetch('/api/simulate', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(body),
+            });
+            const data = await res.json();
+            iterations = data.iterations;
+            log(`Received ${iterations.length} iterations (seed=${data.seed})`);
+
+            buildDiagram();
+
+            const mode = document.getElementById('play-mode').value;
+            if (mode === 'bulk') {
+                // feedIteration all at once
+                iterations.forEach(iter => diagram.feedIteration(iter));
+                diagram.onComplete();
+                setStatus(`Bulk loaded ${iterations.length} iterations`);
+                log('feedIteration() × ' + iterations.length + ' + onComplete()');
+                btnReset.disabled = false;
+                btnRun.disabled = false;
+                toggleExportBtns(true);
+            } else {
+                // Stream one by one
+                streamIdx = 0;
+                setStatus('Streaming iterations…');
+                streamTimer = setInterval(() => {
+                    if (streamIdx >= iterations.length) {
+                        clearInterval(streamTimer); streamTimer = null;
+                        diagram.onComplete();
+                        setStatus(`Streamed all ${iterations.length} iterations`);
+                        log('onComplete()');
+                        btnReset.disabled = false;
+                        btnRun.disabled = false;
+                        toggleExportBtns(true);
+                        return;
+                    }
+                    diagram.feedIteration(iterations[streamIdx]);
+                    if (streamIdx % 5 === 0) log(`feedIteration(${streamIdx + 1})`);
+                    setStatus(`Streaming iteration ${streamIdx + 1} / ${iterations.length}`);
+                    streamIdx++;
+                }, 120);
+            }
+        } catch (err) {
+            setStatus('Error: ' + err.message);
+            log('ERROR: ' + err.message);
+            btnRun.disabled = false;
+        }
+    });
+
+    /* ─── Reset ─── */
+    btnReset.addEventListener('click', function () {
+        if (streamTimer) { clearInterval(streamTimer); streamTimer = null; }
+        if (diagram) { diagram.reset(); diagram = null; }
+        iterations = [];
+        streamIdx = 0;
+        setStatus('Reset.');
+        log('reset()');
+        btnReset.disabled = true;
+        toggleExportBtns(false);
+    });
+
+    /* ─── Programmatic API Tests ─── */
+    window.apiTest = function (method) {
+        if (!diagram) { log(`⚠ No diagram. Run a simulation first.`); return; }
+        switch (method) {
+            case 'play':               diagram.play(); log('play()'); break;
+            case 'pause':              diagram.pause(); log('pause()'); break;
+            case 'stepForward':        diagram.stepForward(); log('stepForward()'); break;
+            case 'stepBack':           diagram.stepBack(); log('stepBack()'); break;
+            case 'goFirst':            diagram.goFirst(); log('goFirst()'); break;
+            case 'goLast':             diagram.goLast(); log('goLast()'); break;
+            case 'seekTo':             diagram.seekTo(5); log('seekTo(5)'); break;
+            case 'setSpeed':           diagram.setSpeed(3); log('setSpeed(3)'); break;
+            case 'toggleParticles':
+                diagram.particlesOn = !diagram.particlesOn;
+                diagram.toggleParticles(diagram.particlesOn);
+                if (diagram.particlesOn && diagram.currentIdx >= 0)
+                    diagram._rebuildParticles(diagram.history[diagram.currentIdx].A);
+                log('toggleParticles(' + diagram.particlesOn + ')');
+                break;
+            case 'toggleDecongestion': diagram.toggleDecongestion(); log('toggleDecongestion()'); break;
+            case 'toggle3D':           diagram.toggle3D(); log('toggle3D()'); break;
+            case 'saveSVG':            diagram.saveSVG('demo_diagram.svg'); log('saveSVG()'); break;
+            case 'savePNG':            diagram.savePNG('demo_diagram.png', 2); log('savePNG()'); break;
+            case 'reset':
+                diagram.reset(); diagram = null;
+                log('reset() — diagram destroyed');
+                toggleExportBtns(false);
+                break;
+        }
+    };
+
+    window.testAlias = function () {
+        const ok = (typeof HMMDiagram !== 'undefined') && (HMMDiagram === StateTransitionDiagram);
+        log('HMMDiagram === StateTransitionDiagram ? ' + ok);
+        if (ok) alert('✅ HMMDiagram is correctly aliased to StateTransitionDiagram');
+        else alert('❌ HMMDiagram alias not found');
+    };
+
+    /* ─── Export buttons ─── */
+    function toggleExportBtns(on) {
+        document.getElementById('btn-save-svg').disabled = !on;
+        document.getElementById('btn-save-png').disabled = !on;
+    }
+    document.getElementById('btn-save-svg').addEventListener('click', () => {
+        if (diagram) { diagram.saveSVG('state_diagram.svg'); log('saveSVG()'); }
+    });
+    document.getElementById('btn-save-png').addEventListener('click', () => {
+        if (diagram) { diagram.savePNG('state_diagram.png', 2); log('savePNG(scale=2)'); }
+    });
+
+    /* ─── Server-side Graphviz rendering ─── */
+    async function downloadGraphviz(fmt) {
+        log(`Requesting Graphviz render (${fmt})…`);
+        // Use the last iteration's A matrix if available, otherwise default
+        let A = [[0.7, 0.3], [0.4, 0.6]];
+        let labels = null;
+        if (iterations.length > 0) {
+            const last = iterations[iterations.length - 1];
+            A = last.A;
+            labels = A.map((_, i) => 'S' + i);
+        }
+        try {
+            const res = await fetch('/api/render_static', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ A, state_labels: labels, format: fmt }),
+            });
+            if (!res.ok) throw new Error(await res.text());
+            const blob = await res.blob();
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url; a.download = 'diagram.' + fmt;
+            document.body.appendChild(a); a.click(); document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            log('Graphviz ' + fmt.toUpperCase() + ' downloaded');
+        } catch (err) {
+            log('Graphviz ERROR: ' + err.message);
+            alert('Graphviz rendering requires the graphviz Python package and system binary.\n\n' + err.message);
+        }
+    }
+    document.getElementById('btn-graphviz-svg').addEventListener('click', () => downloadGraphviz('svg'));
+    document.getElementById('btn-graphviz-png').addEventListener('click', () => downloadGraphviz('png'));
+
+    /* ─── Config Inspector ─── */
+    document.getElementById('btn-load-config').addEventListener('click', async () => {
+        try {
+            const res = await fetch('/api/config');
+            const data = await res.json();
+            document.getElementById('config-output').textContent = JSON.stringify(data, null, 2);
+            log('DiagramConfig loaded from /api/config');
+        } catch (err) {
+            log('Config ERROR: ' + err.message);
+        }
+    });
+
+    /* ─── Keyboard shortcuts ─── */
+    document.addEventListener('keydown', function (e) {
+        if (!diagram) return;
+        if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT' || e.target.tagName === 'TEXTAREA') return;
+        switch (e.key) {
+            case ' ':       e.preventDefault(); diagram.isPlaying ? diagram.pause() : diagram.play(); break;
+            case 'ArrowLeft':  e.preventDefault(); diagram.stepBack(); break;
+            case 'ArrowRight': e.preventDefault(); diagram.stepForward(); break;
+            case 'Home':       e.preventDefault(); diagram.goFirst(); break;
+            case 'End':        e.preventDefault(); diagram.goLast(); break;
+        }
+    });
+
+    /* ─── Fullscreen ─── */
+    document.getElementById('ctl-fullscreen').addEventListener('click', function () {
+        const card = document.getElementById('diagram-card');
+        if (!document.fullscreenElement) {
+            (card.requestFullscreen || card.webkitRequestFullscreen || card.msRequestFullscreen).call(card);
+        } else {
+            (document.exitFullscreen || document.webkitExitFullscreen || document.msExitFullscreen).call(document);
+        }
+    });
+
+})();
+</script>
+
+</body>
+</html>
