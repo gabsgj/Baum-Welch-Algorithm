@@ -821,6 +821,21 @@ class StateTransitionDiagram {
         c.btnForward?.addEventListener('click', () => this.stepForward());
         c.btnLast?.addEventListener('click', () => this.goLast());
         c.speedSelect?.addEventListener('change', e => this.setSpeed(parseFloat(e.target.value)));
+        const scrubToIndex = (idx) => {
+            const safeIdx = Number(idx);
+            if (!Number.isFinite(safeIdx)) return;
+            this.seekTo(Math.round(safeIdx));
+        };
+        const scrubAtClientX = (clientX) => {
+            if (!c.timeline || !this.history.length) return;
+            const rect = c.timeline.getBoundingClientRect();
+            const width = Math.max(1, rect.width);
+            const ratio = Math.min(1, Math.max(0, (clientX - rect.left) / width));
+            const maxIdx = Math.max(0, this.history.length - 1);
+            const idx = Math.round(ratio * maxIdx);
+            c.timeline.value = String(idx);
+            this.seekTo(idx);
+        };
         const beginScrub = () => {
             this.isScrubbing = true;
             this.followLatest = false;
@@ -829,12 +844,38 @@ class StateTransitionDiagram {
         const endScrub = () => {
             this.isScrubbing = false;
         };
-        c.timeline?.addEventListener('pointerdown', beginScrub);
+        c.timeline?.addEventListener('pointerdown', (e) => {
+            beginScrub();
+            scrubAtClientX(e.clientX);
+        });
+        c.timeline?.addEventListener('pointermove', (e) => {
+            if (!this.isScrubbing) return;
+            if ((e.buttons & 1) !== 1) {
+                endScrub();
+                return;
+            }
+            scrubAtClientX(e.clientX);
+        });
         c.timeline?.addEventListener('mousedown', beginScrub);
-        c.timeline?.addEventListener('touchstart', beginScrub, { passive: true });
-        c.timeline?.addEventListener('input', e => { beginScrub(); this.seekTo(parseInt(e.target.value, 10)); });
-        c.timeline?.addEventListener('change', e => { endScrub(); this.seekTo(parseInt(e.target.value, 10)); });
+        c.timeline?.addEventListener('touchstart', (e) => {
+            beginScrub();
+            const t = e.touches?.[0];
+            if (t) scrubAtClientX(t.clientX);
+        }, { passive: true });
+        c.timeline?.addEventListener('touchmove', (e) => {
+            if (!this.isScrubbing) return;
+            if (!e.touches || e.touches.length === 0) {
+                endScrub();
+                return;
+            }
+            const t = e.touches?.[0];
+            if (t) scrubAtClientX(t.clientX);
+        }, { passive: true });
+        c.timeline?.addEventListener('input', e => { scrubToIndex(e.target.value); });
+        c.timeline?.addEventListener('change', e => { endScrub(); scrubToIndex(e.target.value); });
         c.timeline?.addEventListener('pointerup', endScrub);
+        window.addEventListener('pointerup', endScrub);
+        window.addEventListener('pointercancel', endScrub);
         window.addEventListener('mouseup', endScrub);
         window.addEventListener('touchend', endScrub, { passive: true });
         c.btnParticles?.addEventListener('click', () => {
