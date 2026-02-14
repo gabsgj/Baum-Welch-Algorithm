@@ -1,12 +1,57 @@
 ﻿<!DOCTYPE html>
-<html lang="en">
+<html lang="en" prefix="og: https://ogp.me/ns#">
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HMM — Live Baum–Welch Training Dashboard</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>HMM Baum-Welch Algorithm — Live Interactive Training Dashboard</title>
     <meta name="description"
-        content="Real-time Hidden Markov Model training dashboard using the Baum-Welch Expectation-Maximization algorithm">
+        content="Train Hidden Markov Models in real time with the Baum-Welch (EM) algorithm. Interactive dashboard with animated state diagrams, convergence plots, heatmaps, and WebSocket streaming. Open source, educational, and production-ready.">
+    <meta name="keywords" content="Hidden Markov Model, HMM, Baum-Welch, Expectation-Maximization, EM algorithm, forward-backward, state transition diagram, machine learning, probabilistic model, sequence analysis, real-time training">
+    <meta name="author" content="Gabriel James">
+    <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1">
+    <meta name="theme-color" content="#4B6587">
+    <link rel="canonical" href="https://bwa.gabrieljames.me/">
+
+    <!-- Open Graph -->
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="HMM Baum-Welch Algorithm — Live Training Dashboard">
+    <meta property="og:description" content="Train Hidden Markov Models in real time. Interactive dashboard with animated state diagrams, convergence plots, and parameter heatmaps.">
+    <meta property="og:url" content="https://bwa.gabrieljames.me/">
+    <meta property="og:site_name" content="HMM Baum-Welch Training Dashboard">
+    <meta property="og:locale" content="en_US">
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="HMM Baum-Welch Algorithm — Live Training Dashboard">
+    <meta name="twitter:description" content="Train Hidden Markov Models in real time with animated state diagrams, convergence plots, and parameter heatmaps.">
+
+    <!-- Structured Data (JSON-LD) -->
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "WebApplication",
+        "name": "HMM Baum-Welch Training Dashboard",
+        "url": "https://bwa.gabrieljames.me/",
+        "description": "Interactive real-time Hidden Markov Model training dashboard using the Baum-Welch Expectation-Maximization algorithm. Features animated state transition diagrams, convergence plots, and parameter heatmaps.",
+        "applicationCategory": "EducationalApplication",
+        "operatingSystem": "Any",
+        "browserRequirements": "Requires a modern web browser with JavaScript enabled",
+        "author": {
+            "@type": "Person",
+            "name": "Gabriel James",
+            "url": "https://gabrieljames.me"
+        },
+        "offers": {
+            "@type": "Offer",
+            "price": "0",
+            "priceCurrency": "USD"
+        },
+        "isAccessibleForFree": true,
+        "license": "https://opensource.org/licenses/MIT",
+        "keywords": ["Hidden Markov Model", "Baum-Welch", "EM algorithm", "machine learning", "state transition diagram", "forward-backward algorithm"]
+    }
+    </script>
 
     <!-- Favicon -->
     <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
@@ -238,32 +283,139 @@
                 font-size: 1rem;
             }
 
+            /* Glass pill */
+            .glass-pill {
+                padding: 8px 18px;
+                max-width: 92vw;
+            }
+            .glass-pill h1 {
+                font-size: 0.78rem;
+            }
+
             main {
-                padding-left: 1rem;
-                padding-right: 1rem;
-                padding-top: 1.25rem;
+                padding-left: 0.75rem;
+                padding-right: 0.75rem;
+                padding-top: 4.5rem;
             }
 
             main > section {
-                margin-bottom: 1.5rem;
+                margin-bottom: 1.25rem;
+            }
+
+            /* Reduce spacing between sections */
+            .space-y-10 > * + * {
+                margin-top: 1.5rem;
             }
 
             .card {
                 padding: 0.75rem;
             }
 
+            .card.p-6 {
+                padding: 0.75rem;
+            }
+
+            .card.p-5 {
+                padding: 0.75rem;
+            }
+
+            .card.p-8 {
+                padding: 1rem;
+            }
+
+            /* Configuration form */
+            .grid.grid-cols-1.md\:grid-cols-3 {
+                gap: 0.75rem;
+            }
+
+            label {
+                font-size: 0.85rem !important;
+                margin-bottom: 0.35rem !important;
+            }
+
+            input[type="number"],
+            input[type="text"],
+            textarea {
+                font-size: 0.85rem !important;
+                padding: 0.45rem 0.6rem !important;
+            }
+
+            /* Train button */
+            #train-btn {
+                width: 100%;
+                justify-content: center;
+                padding: 0.75rem 1.5rem;
+                font-size: 0.95rem;
+            }
+
+            /* Preset buttons */
+            .flex.items-center.gap-3.pt-1 {
+                flex-wrap: wrap;
+                gap: 0.5rem;
+            }
+
+            #preset-weather,
+            #preset-dna {
+                flex: 1;
+                min-width: 0;
+                text-align: center;
+                padding: 0.5rem 0.75rem;
+                font-size: 0.8rem;
+            }
+
+            /* Live metrics cards */
+            .grid.grid-cols-2.md\:grid-cols-5 {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 0.5rem;
+            }
+
+            .grid.grid-cols-2.md\:grid-cols-5 .card p.text-2xl {
+                font-size: 1.2rem;
+            }
+
+            .grid.grid-cols-2.md\:grid-cols-5 .card p.text-sm {
+                font-size: 0.7rem;
+            }
+
+            /* Charts */
             #ll-chart,
             #prob-chart,
             #error-chart,
             #comp-chart,
             #evolution-chart {
-                height: 240px !important;
+                height: 220px !important;
+            }
+
+            .card.p-5.relative {
+                padding: 0.5rem;
+            }
+
+            /* Chart download buttons on mobile */
+            .card .absolute.left-5.bottom-8 {
+                left: 8px;
+                bottom: 8px;
+            }
+
+            /* Heatmaps */
+            .grid.grid-cols-1.lg\:grid-cols-2 {
+                gap: 1rem;
             }
 
             .heatmap-cell {
-                font-size: 0.65rem;
+                font-size: 0.6rem;
+                padding: 3px 4px;
             }
 
+            /* State diagram */
+            .hmm-canvas {
+                min-height: 280px;
+            }
+
+            #diagram-card.card.p-6 {
+                padding: 0.5rem;
+            }
+
+            /* Iteration log table */
             .iter-table {
                 font-size: 0.6rem;
             }
@@ -273,6 +425,86 @@
                 padding: 4px 6px;
             }
 
+            /* Intermediate variables tabs */
+            .flex.gap-4.mb-4 {
+                gap: 0.35rem;
+            }
+
+            .flex.gap-4.mb-4 button {
+                font-size: 0.65rem;
+                padding: 0.2rem 0.5rem;
+            }
+
+            /* Theory section */
+            .grid.grid-cols-1.md\:grid-cols-2 {
+                gap: 1rem;
+            }
+
+            .grid.grid-cols-1.md\:grid-cols-3 {
+                gap: 0.75rem;
+            }
+
+            .card.p-8.space-y-8 {
+                padding: 1rem;
+            }
+
+            .card.p-8.space-y-8 h3 {
+                font-size: 0.9rem;
+            }
+
+            .card.p-8.space-y-8 p {
+                font-size: 0.8rem;
+            }
+
+            /* Application cards */
+            .grid.grid-cols-1.sm\:grid-cols-2.lg\:grid-cols-4 {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 0.5rem;
+            }
+
+            .grid.grid-cols-1.sm\:grid-cols-2.lg\:grid-cols-4 .group .w-12 {
+                width: 2.25rem;
+                height: 2.25rem;
+                font-size: 1.25rem;
+                margin-bottom: 0.5rem;
+            }
+
+            .grid.grid-cols-1.sm\:grid-cols-2.lg\:grid-cols-4 h4 {
+                font-size: 0.75rem;
+            }
+
+            /* Footer */
+            footer .max-w-7xl {
+                flex-direction: column;
+                text-align: center;
+                gap: 0.75rem;
+                padding: 1rem 0.75rem;
+            }
+
+            footer .flex.items-center.gap-4 {
+                justify-content: center;
+            }
+
+            footer nav {
+                justify-content: center;
+            }
+
+            /* Section titles */
+            .section-title {
+                font-size: 0.75rem;
+            }
+
+            /* Scrollbar - thinner on mobile */
+            ::-webkit-scrollbar {
+                width: 3px;
+                height: 3px;
+            }
+
+            /* Status badge */
+            .flex.justify-end.-mb-6 {
+                margin-bottom: -0.25rem;
+            }
+
             @keyframes fadeIn {
                 from { opacity: 0; transform: translateY(-4px); }
                 to { opacity: 1; transform: translateY(0); }
@@ -280,6 +512,22 @@
 
             .animate-fadeIn {
                 animation: fadeIn 0.25s ease-out;
+            }
+        }
+
+        /* ── Medium screens (tablets) ── */
+        @media (min-width: 641px) and (max-width: 1023px) {
+            main {
+                padding-left: 1.25rem;
+                padding-right: 1.25rem;
+            }
+
+            .glass-pill {
+                padding: 10px 28px;
+            }
+
+            .grid.grid-cols-1.sm\:grid-cols-2.lg\:grid-cols-4 {
+                grid-template-columns: repeat(2, 1fr);
             }
         }
 
@@ -298,14 +546,23 @@
 
 <body class="min-h-screen antialiased text-slate-700">
 
+    <!-- SEO: noscript fallback for crawlers -->
+    <noscript>
+        <div style="padding:2rem;text-align:center;font-family:sans-serif">
+            <h1>HMM Baum-Welch Algorithm — Interactive Training Dashboard</h1>
+            <p>This application requires JavaScript for interactive Hidden Markov Model training and visualization.
+               Please enable JavaScript to use the full dashboard.</p>
+        </div>
+    </noscript>
+
     <!-- ══════════════ 1. FLOATING GLASS PILL ══════════════ -->
-    <div class="glass-pill">
+    <header class="glass-pill" role="banner">
         <h1 class="text-sm font-semibold text-slate-800 tracking-tight whitespace-nowrap">
             Hidden Markov Model &mdash; Baum&ndash;Welch Algorithm
         </h1>
-    </div>
+    </header>
 
-    <main class="max-w-7xl mx-auto px-6 pt-20 pb-8 space-y-10">
+    <main class="max-w-7xl mx-auto px-6 pt-20 pb-8 space-y-10" role="main" aria-label="HMM Training Dashboard">
 
         <!-- Status Badge (below pill, inside main flow) -->
         <div class="flex justify-end -mb-6">
@@ -879,7 +1136,7 @@
     </main>
 
     <!-- ══════════════ FOOTER ══════════════ -->
-    <footer class="border-t border-palette-gray/15 glass-panel mt-16 py-8">
+    <footer class="border-t border-palette-gray/15 glass-panel mt-16 py-8" role="contentinfo">
         <div class="max-w-7xl mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-4">
             
             <!-- Left: Man Art & Copyright -->

@@ -279,3 +279,51 @@
     max-height: 200px;
     overflow-y: auto;
 }
+
+/* ── Mobile responsive ── */
+@media (max-width: 640px) {
+    .hmm-canvas {
+        min-height: 280px;
+    }
+
+    .hmm-controls {
+        flex-wrap: wrap;
+        gap: 4px;
+        padding: 4px 6px;
+    }
+
+    .hmm-timeline {
+        min-width: 100%;
+        order: 20;
+    }
+
+    .hmm-iter-label {
+        min-width: auto;
+        font-size: 10px;
+        order: 21;
+    }
+
+    .hmm-ctrl-btn {
+        width: 28px;
+        height: 28px;
+        font-size: 12px;
+    }
+
+    .hmm-speed-select {
+        font-size: 11px;
+        padding: 2px 4px;
+    }
+
+    .hmm-inspector table {
+        font-size: 9px;
+    }
+
+    .hmm-inspector th,
+    .hmm-inspector td {
+        padding: 2px 4px;
+    }
+
+    .hmm-mode-label {
+        font-size: 9px;
+    }
+}
