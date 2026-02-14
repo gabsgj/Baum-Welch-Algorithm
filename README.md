@@ -38,8 +38,23 @@ The codebase is designed to be both **educational** — walk through the Baum-We
 ---
 
 ## Screenshots
-
-<!-- Add screenshots here -->
+![text](docs/screenshots/1.png)
+![text](docs/screenshots/2.png)
+![text](docs/screenshots/3.png)
+![text](docs/screenshots/4.png)
+![text](docs/screenshots/5.png)
+![text](docs/screenshots/6.png)
+![text](docs/screenshots/7.png)
+![text](docs/screenshots/8.png)
+![text](docs/screenshots/9.png)
+![text](docs/screenshots/10.png)
+![text](docs/screenshots/11.png)
+![text](docs/screenshots/12.png)
+![text](docs/screenshots/13.png)
+![text](docs/screenshots/14.png)
+![text](docs/screenshots/15.png)
+![text](docs/screenshots/16.png)
+![text](docs/screenshots/17.png)
 
 ---
 
