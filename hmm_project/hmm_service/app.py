@@ -10,6 +10,8 @@ REST blueprint.  The ``socketio`` instance is exported so that
 
 from __future__ import annotations
 
+import os
+
 from flask import Flask, render_template
 from flask_socketio import SocketIO
 
@@ -44,4 +46,11 @@ def create_app() -> Flask:
 # ─── Dev entry-point ─── #
 if __name__ == "__main__":
     application = create_app()
-    socketio.run(application, debug=True, host="0.0.0.0", port=5000)
+    debug_mode = os.getenv("FLASK_DEBUG", "0") == "1"
+    socketio.run(
+        application,
+        debug=debug_mode,
+        use_reloader=debug_mode,
+        host="0.0.0.0",
+        port=5000,
+    )

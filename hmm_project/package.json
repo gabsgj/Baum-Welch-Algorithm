@@ -1,0 +1,11 @@
+{
+  "name": "hmm-project-frontend-build",
+  "private": true,
+  "version": "1.0.0",
+  "scripts": {
+    "build:tailwind": "tailwindcss -c tailwind.config.js -i ./hmm_service/static/css/tailwind.input.css -o ./hmm_service/static/css/tailwind.generated.css --minify"
+  },
+  "devDependencies": {
+    "tailwindcss": "^3.4.13"
+  }
+}

@@ -820,7 +820,13 @@ class StateTransitionDiagram {
         });
         c.btnForward?.addEventListener('click', () => this.stepForward());
         c.btnLast?.addEventListener('click', () => this.goLast());
-        c.speedSelect?.addEventListener('change', e => this.setSpeed(parseFloat(e.target.value)));
+        const syncPlaySpeedFromSelect = () => {
+            if (!c.speedSelect) return;
+            const selectedSpeed = parseFloat(c.speedSelect.value);
+            if (Number.isFinite(selectedSpeed) && selectedSpeed > 0) this.setSpeed(selectedSpeed);
+        };
+        c.speedSelect?.addEventListener('change', syncPlaySpeedFromSelect);
+        syncPlaySpeedFromSelect();
         const scrubToIndex = (idx) => {
             const safeIdx = Number(idx);
             if (!Number.isFinite(safeIdx)) return;
