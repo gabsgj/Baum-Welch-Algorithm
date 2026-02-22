@@ -78,6 +78,10 @@ def register_socket_events(sio: SocketIO) -> None:
         """Handle a training request over WebSocket."""
         logger.info("WebSocket start_training received: %s", data)
 
+        # Capture the session id NOW, while we're still in the event context.
+        # The background task runs in a separate greenlet and has no request context.
+        sid = request.sid
+
         try:
             observations = data.get("observations", [])
             if isinstance(observations, str):
@@ -95,26 +99,30 @@ def register_socket_events(sio: SocketIO) -> None:
             emit("training_error", {"error": f"Invalid input: {exc}"})
             return
 
-        def on_iteration(update: dict[str, Any]) -> None:
-            """Callback invoked after each EM iteration."""
-            emit("training_update", update)
-            sio.sleep(0)  # yield to eventlet so the message is flushed
+        def run_training_task() -> None:
+            """Background greenlet: runs training and emits updates to the client."""
 
-        try:
-            result = run_training_live(
-                observations=observations,
-                n_states=n_states,
-                n_obs_symbols=n_obs_symbols,
-                max_iterations=max_iterations,
-                tolerance=tolerance,
-                init_params=init_params,
-                on_iteration=on_iteration,
-            )
-            emit("training_complete", {
-                "converged": result["converged"],
-                "n_iterations": result["n_iterations"],
-                "final_log_likelihood": result["final_log_likelihood"],
-            })
-        except Exception as exc:
-            logger.exception("Training failed")
-            emit("training_error", {"error": str(exc)})
+            def on_iteration(update: dict[str, Any]) -> None:
+                sio.emit("training_update", update, to=sid)
+                sio.sleep(0)  # yield so eventlet flushes the message
+
+            try:
+                result = run_training_live(
+                    observations=observations,
+                    n_states=n_states,
+                    n_obs_symbols=n_obs_symbols,
+                    max_iterations=max_iterations,
+                    tolerance=tolerance,
+                    init_params=init_params,
+                    on_iteration=on_iteration,
+                )
+                sio.emit("training_complete", {
+                    "converged": result["converged"],
+                    "n_iterations": result["n_iterations"],
+                    "final_log_likelihood": result["final_log_likelihood"],
+                }, to=sid)
+            except Exception as exc:
+                logger.exception("Training failed")
+                sio.emit("training_error", {"error": str(exc)}, to=sid)
+
+        sio.start_background_task(run_training_task)

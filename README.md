@@ -26,7 +26,7 @@ The codebase is designed to be both **educational** — walk through the Baum-We
 | **Programmatic API** | `HMMTrainer` class for scripting, Jupyter notebooks, and batch experiments |
 | **REST + WebSocket API** | `POST /api/train` for synchronous training; `start_training` WebSocket event for streaming |
 | **Numerical stability** | Per-timestep scaling prevents underflow on long sequences |
-| **One-command deploy** | `zbpack.json` configures Zeabur; also runnable with Gunicorn + eventlet locally |
+| **One-command deploy** | `Dockerfile` + `Procfile` + `zbpack.json` configure Zeabur; starts directly via eventlet — no Gunicorn required |
 | **Modular architecture** | Each mathematical operation lives in its own module; easy to extend or swap components |
 
 ---
@@ -91,7 +91,7 @@ The codebase is designed to be both **educational** — walk through the Baum-We
 | **Web framework** | Flask ≥3.0, Flask-SocketIO ≥5.3, eventlet ≥0.35 | HTTP server, WebSocket transport, async worker |
 | **Frontend** | Tailwind CSS 3.4, Plotly.js 2.27, D3.js v7, Socket.IO 4.7 | Dashboard styling, interactive charts, live diagrams |
 | **Visualization** | Matplotlib ≥3.7, Seaborn ≥0.13, Graphviz ≥0.20 | Static plots, heatmaps, state transition diagrams |
-| **Deployment** | Gunicorn ≥21.0, Zeabur | Production WSGI server with eventlet worker |
+| **Deployment** | Docker, Zeabur, eventlet | Container-based deploy; eventlet serves HTTP + WebSocket directly — no Gunicorn |
 | **Dev tools** | pytest ≥7.0, pytest-cov, Node.js/npm (Tailwind rebuilds) | Testing and CSS build pipeline |
 
 ---
@@ -100,10 +100,12 @@ The codebase is designed to be both **educational** — walk through the Baum-We
 
 ```text
 Baum-Welch-Algorithm/
-├── app.py                        # Production entry point — exports `app` for Gunicorn
+├── app.py                        # Production entry point — runs socketio.run() directly via eventlet
+├── Dockerfile                    # Container definition used by Zeabur (python:3.11-slim, pip install -e .)
+├── Procfile                      # Heroku-style fallback: web: python app.py
+├── zbpack.json                   # Zeabur build hints (Python 3.11, start_command)
 ├── pyproject.toml                # PEP 621 packaging, dependencies, and tool config
 ├── requirements.txt              # Runtime dependencies (pip install -r)
-├── zbpack.json                   # Zeabur deployment config (Python 3.11, start command)
 ├── package.json                  # npm scripts for Tailwind CSS build
 ├── tailwind.config.js            # Tailwind content paths and theme extensions
 ├── README.md                     # This file
@@ -827,19 +829,55 @@ pytest tests/test_baum_welch.py -v
 
 ---
 
+## Deployment
+
+The project ships three deployment files that work together to ensure Zeabur always starts the app correctly — with eventlet serving WebSocket traffic directly and no Gunicorn in the chain.
+
+### Files
+
+| File | Purpose |
+|---|---|
+| `Dockerfile` | Primary container definition. Zeabur detects this and uses it instead of auto-generating one. Installs the package with `pip install -e .` and runs `python app.py`. |
+| `Procfile` | Fallback for Heroku-style platforms: `web: python app.py`. Ignored by Zeabur when a `Dockerfile` is present. |
+| `zbpack.json` | Zeabur build hints: Python version, entry file, start command. Ignored when a `Dockerfile` is present but kept for reference. |
+
+### Why no Gunicorn?
+
+Gunicorn manages worker processes and restarts them after errors, which is fine for plain WSGI apps. But Socket.IO requires a **single persistent async worker** — when Gunicorn kills a worker (on timeout, error, or WebSocket disconnect), all active Socket.IO sessions are invalidated. The eventlet server started by `socketio.run()` handles HTTP and WebSocket on the same loop without any worker process management.
+
+### Deploying to Zeabur
+
+1. Push the repository (including `Dockerfile`) to your Git provider.
+2. In Zeabur, create a new service → **Deploy from Git** → select the repo.
+3. Zeabur detects `Dockerfile`, builds the image, and runs `python app.py`.
+4. The app binds to `$PORT` (injected by Zeabur, typically 8080).
+5. No environment variables need to be set manually.
+
+### Local production simulation
+
+```bash
+# Exactly mimics the Zeabur container
+docker build -t hmm-bwa .
+docker run -p 8080:8080 -e PORT=8080 hmm-bwa
+# → Open http://localhost:8080/
+```
+
+---
+
 ## Troubleshooting
 
 | Problem | Cause | Solution |
 |---|---|---|
 | `WinError 10048` / "Address already in use" | Port 5000 is occupied by another process | Kill the process (see below), then restart |
 | Flask-SocketIO fails to start | Missing `eventlet` package | Run `pip install eventlet` |
-| WebSocket not connecting | Wrong worker class or multiple Gunicorn workers | Use `--worker-class eventlet -w 1` |
+| WebSocket not connecting | Proxy stripping upgrade headers, or app started with Gunicorn instead of eventlet | Ensure the app is started with `python app.py` (eventlet); do **not** use Gunicorn — it tears down the WebSocket connection on worker exit |
 | State diagrams don't render (Graphviz) | Graphviz system binary not installed | Install from [graphviz.org](https://graphviz.org/download/) and add to `PATH` |
 | `ModuleNotFoundError` | Running from wrong directory or not installed | Run from project root; ensure `pip install -e .` was done |
 | Heatmaps / plots not appearing | Matplotlib backend issue in server mode | The server uses `Agg` backend automatically; check logs for errors |
 | Training never converges | Tolerance too low or insufficient data | Increase `max_iterations`, raise `tolerance`, or use more observations |
 | 404 on `/` | Root directory misconfigured in deployment | Ensure Zeabur root directory is empty (repository root) |
 | Build fails on Zeabur | Incomplete `requirements.txt` | Verify all deps resolve locally with `pip install -r requirements.txt` |
+| Live training not updating on Zeabur | Zeabur auto-detected Flask and injected Gunicorn, overriding the start command | Ensure `Dockerfile` exists at repo root — Zeabur always prefers it over auto-detection |
 
 **Freeing port 5000 on Windows:**
 

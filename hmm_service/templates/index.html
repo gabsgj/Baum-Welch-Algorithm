@@ -1798,8 +1798,9 @@
 
                     document.getElementById('summary-content').innerHTML = html;
 
-                    // Scroll to summary
-                    sec.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    // Scroll to summary with top padding so the heading isn't flush against the viewport
+                    const _top = sec.getBoundingClientRect().top + window.scrollY - 80;
+                    window.scrollTo({ top: _top, behavior: 'smooth' });
                 }
 
                 // Fullscreen for HMM diagram

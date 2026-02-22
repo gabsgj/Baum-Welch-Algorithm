@@ -1,9 +1,10 @@
 """
-app.py — Production entry point for Zeabur / Gunicorn.
+app.py — Production entry point (Zeabur / Docker / local).
 
-Zeabur auto-detects this file and uses Gunicorn to serve it.
-The ``app`` variable is the WSGI application object.
-The ``socketio`` instance wraps it for WebSocket support.
+The committed Dockerfile runs ``python app.py`` directly, which starts
+the eventlet-based Socket.IO server without Gunicorn.  The ``PORT``
+environment variable is respected (Zeabur injects it); defaults to 5000
+for local development.
 """
 
 import os
