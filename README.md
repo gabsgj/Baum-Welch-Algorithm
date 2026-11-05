@@ -33,7 +33,7 @@ The codebase is designed to be both **educational** — walk through the Baum-We
 
 ## Live Demo
 
-**https://bwa.gabrieljames.me**
+**https://bwa.gabrieljames.dev**
 
 ---
 
